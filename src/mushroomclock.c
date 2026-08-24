@@ -138,6 +138,7 @@ struct level_state
     int mushroom_y;
     int mushroom_vy;
     int mushroom_direction;
+    int powerup_roam_frames;
     int enemy_x;
     int enemy_direction;
     int enemy_kind;
@@ -651,6 +652,14 @@ static void draw_runner(int x, int y, bool big, int direction,
     struct rgb hair = { 91, 47, 25};
     int step = (frame_number / 3) % 2;
 
+    if (level.star_frames > 0 && (frame_number / 3) % 2 != 0)
+    {
+        red = p->accent;
+        blue = p->cloud;
+        skin = p->cloud;
+        hair = p->accent;
+    }
+
     if (big)
     {
         int top = y - 8;
@@ -748,24 +757,8 @@ static bool runner_touches_powerup(int runner_x, int runner_y)
     int power_x = level.mushroom_x / 16;
     int power_y = level.mushroom_y / 16;
 
-    if (overlaps(runner_x, runner_y, 13, 16,
-                 power_x, power_y, 13, 13))
-        return true;
-
-    if (level.powerup_kind == POWER_STAR ||
-        level.powerup_kind == POWER_POISON)
-    {
-        int dx = runner_x + 6 - (power_x + 7);
-        int dy = runner_y + 8 - (power_y + 6);
-        int max_dx = level.powerup_kind == POWER_STAR ? 20 : 16;
-        int max_dy = level.powerup_kind == POWER_STAR ? 36 : 32;
-        if (dx < 0)
-            dx = -dx;
-        if (dy < 0)
-            dy = -dy;
-        return dx <= max_dx && dy <= max_dy;
-    }
-    return false;
+    return overlaps(runner_x, runner_y, 13, 16,
+                    power_x, power_y, 13, 13);
 }
 
 static int first_question_x(void)
@@ -1007,6 +1000,7 @@ static void reset_level(void)
     level.mushroom_y = power_block_y() * 16;
     level.mushroom_vy = 0;
     level.mushroom_direction = -1;
+    level.powerup_roam_frames = 0;
     level.enemy_x = (level.enemy_min_x +
                      rb->rand() % (level.enemy_max_x -
                                    level.enemy_min_x + 1)) * 16;
@@ -1131,6 +1125,16 @@ static void update_mushroom(void)
         {
             level.mushroom_y = (block_y - 12) * 16;
             level.mushroom_mode = 2;
+            if (level.powerup_kind == POWER_STAR)
+            {
+                level.mushroom_direction = 1;
+                level.powerup_roam_frames = 24;
+            }
+            else if (level.powerup_kind == POWER_POISON)
+            {
+                level.mushroom_direction = 1;
+                level.powerup_roam_frames = 12;
+            }
         }
         return;
     }
@@ -1138,7 +1142,8 @@ static void update_mushroom(void)
     powerup.x = level.mushroom_x;
     powerup.y = level.mushroom_y;
     powerup.vx = level.mushroom_direction *
-                 (level.powerup_kind == POWER_STAR ? 32 : 8);
+                 (level.powerup_kind == POWER_STAR &&
+                  level.powerup_roam_frames > 0 ? 32 : 8);
     powerup.vy = level.mushroom_vy;
     powerup.width = 13;
     powerup.height = 12;
@@ -1149,6 +1154,18 @@ static void update_mushroom(void)
         powerup.vy = -44;
     if (movement.hit_left || movement.hit_right)
         level.mushroom_direction = -level.mushroom_direction;
+    if (level.powerup_kind == POWER_STAR &&
+        powerup.x <= (level.first_x - 20) * PS_ONE)
+    {
+        powerup.x = (level.first_x - 20) * PS_ONE;
+        level.mushroom_direction = 1;
+    }
+    else if (level.powerup_kind == POWER_STAR &&
+             powerup.x >= (level.pipe_x - 18) * PS_ONE)
+    {
+        powerup.x = (level.pipe_x - 18) * PS_ONE;
+        level.mushroom_direction = -1;
+    }
 
     level.mushroom_x = powerup.x;
     level.mushroom_y = powerup.y;
@@ -1230,7 +1247,7 @@ static void update_runner(void)
 
     runner.x = level.runner_x;
     runner.y = level.runner_y - (level.runner_big ? 8 * PS_ONE : 0);
-    if (level.mushroom_mode == 2)
+    if (level.mushroom_mode == 2 && level.powerup_roam_frames == 0)
     {
         int power_center = level.mushroom_x / PS_ONE + 6;
         int runner_center = runner.x / PS_ONE + 6;
@@ -1244,7 +1261,8 @@ static void update_runner(void)
             hold_for_powerup = true;
     }
     runner.vx = level.runner_direction * PS_ONE;
-    if (level.mushroom_mode == 1 || hold_for_powerup)
+    if (level.mushroom_mode == 1 || level.powerup_roam_frames > 0 ||
+        hold_for_powerup)
         runner.vx = 0;
     runner.vy = level.runner_vy;
     runner.width = 13;
@@ -1292,7 +1310,7 @@ static void update_runner(void)
     new_y = level.runner_y / PS_ONE;
     new_bottom = new_y + 16;
 
-    if (level.mushroom_mode != 0 &&
+    if (level.mushroom_mode != 0 && level.powerup_roam_frames == 0 &&
         runner_touches_powerup(level.runner_x / 16,
                                level.runner_y / 16))
     {
@@ -1379,6 +1397,8 @@ static void update_level(void)
         level.power_block_bounce--;
     if (level.coin_frames > 0)
         level.coin_frames--;
+    if (level.powerup_roam_frames > 0)
+        level.powerup_roam_frames--;
     if (level.star_frames > 0)
         level.star_frames--;
     if (level.hurt_frames > 0)

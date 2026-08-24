@@ -54,9 +54,10 @@ iPod battery as a gauge with a percentage. Each surface lap randomly chooses a
 power-up, enemy type, enemy position and direction, and one of three sparse
 block templates. Consecutive laps cannot reuse the same layout or exact
 configuration. A lap may use the ground route, retreat before a second
-approach, or cross the block tops. The star grants a blinking sparkle aura and
-lets the runner knock enemies away. Stomps and star hits have separate death
-animations. Side contact leaves the enemy alive and hurts or kills the runner.
+approach, or cross the block tops. The star makes the runner alternate colors,
+adds a sparkle aura, and lets him knock enemies away. Stomps and star hits have
+separate death animations. Side contact leaves the enemy alive and hurts or
+kills the runner.
 Auto mode follows the time of day.
 At 50 seconds before each hour, the next natural lap reset starts an underground
 stage. Underground laps have a different block layout, no flag, a turtle enemy,
