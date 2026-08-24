@@ -962,8 +962,8 @@ static void reset_level(void)
             if (forced_scenario == SCENARIO_STOMP ||
                 forced_scenario == SCENARIO_SIDE_HIT)
                 fixed_enemy_x = 42;
-            level.enemy_min_x = fixed_enemy_x - 2;
-            level.enemy_max_x = fixed_enemy_x + 2;
+            level.enemy_min_x = fixed_enemy_x;
+            level.enemy_max_x = fixed_enemy_x;
         }
 #endif
     }
@@ -1237,9 +1237,11 @@ static void update_runner(void)
 #ifdef SIMULATOR
                  forced_scenario != SCENARIO_SIDE_HIT &&
 #endif
-                 runner_x >= enemy_x - 27 &&
-                 runner_x < enemy_x - 16)
-            launch_runner(-58);
+                 runner_x >= enemy_x -
+                             (level.detour_started ? 21 : 27) &&
+                 runner_x < enemy_x -
+                            (level.detour_started ? 12 : 16))
+            launch_runner(-54);
         else if (runner_x >= level.pipe_x - 18 &&
                  runner_x < level.pipe_x - 5)
             launch_runner(-66);
@@ -1343,34 +1345,30 @@ static void update_runner(void)
         enemy.width = 14;
         enemy.height = enemy_height;
 
-        if (ps_overlap(&runner, &enemy))
+        if (level.star_frames > 0 && ps_overlap(&runner, &enemy))
+            defeat_enemy(ENEMY_DEATH_STAR);
+        else if (ps_crossed_top(&previous_runner, &runner, &enemy, 2))
         {
-            if (level.star_frames > 0)
-                defeat_enemy(ENEMY_DEATH_STAR);
-            else if (ps_crossed_top(&previous_runner, &runner,
-                                    &enemy, 2))
+            defeat_enemy(ENEMY_DEATH_STOMP);
+            level.runner_y = (enemy_top - 16) * PS_ONE;
+            level.runner_vy = -43;
+            level.runner_on_surface = false;
+        }
+        else if (ps_overlap(&runner, &enemy) && level.hurt_frames == 0)
+        {
+            if (level.runner_big)
             {
-                defeat_enemy(ENEMY_DEATH_STOMP);
-                level.runner_y = (enemy_top - 16) * PS_ONE;
-                level.runner_vy = -43;
+                level.runner_big = false;
+                level.hurt_frames = 32;
+                level.runner_vy = -48;
                 level.runner_on_surface = false;
             }
-            else if (level.hurt_frames == 0)
+            else
             {
-                if (level.runner_big)
-                {
-                    level.runner_big = false;
-                    level.hurt_frames = 32;
-                    level.runner_vy = -48;
-                    level.runner_on_surface = false;
-                }
-                else
-                {
-                    level.death_frames = 60;
-                    level.runner_death_cause = RUNNER_DEATH_ENEMY;
-                    level.runner_vy = -76;
-                    level.runner_on_surface = false;
-                }
+                level.death_frames = 60;
+                level.runner_death_cause = RUNNER_DEATH_ENEMY;
+                level.runner_vy = -76;
+                level.runner_on_surface = false;
             }
         }
     }
