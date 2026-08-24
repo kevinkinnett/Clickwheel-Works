@@ -109,6 +109,20 @@ To build and capture Mushroom Clock instead:
 .\scripts\Capture-MushroomClock.ps1
 ```
 
+Mushroom Clock also has eight deterministic review scenarios. They cover
+mushroom growth, an empty block, a star attack, the high route, retreat, a
+stomp, a fatal side collision, and the underground poison run. These controls
+exist only in the simulator; laps on the iPod remain random.
+
+```powershell
+.\scripts\Record-MushroomScenarios.ps1
+.\scripts\Build-MushroomScenarioSheets.ps1
+```
+
+The first command writes one 15-second LCD-only MP4 per scenario under
+`artifacts/video`. The second creates per-scenario contact sheets and a combined
+review sheet under `artifacts/screenshots/mushroomclock/scenarios`.
+
 The captures go under `artifacts/screenshots`. The repository ignores that
 directory because recordings and device builds are local products.
 

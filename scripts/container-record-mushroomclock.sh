@@ -4,9 +4,11 @@ set -eu
 build_dir=/rockbox/src/build-sim-ipodcolor
 video_dir=/project/artifacts/video
 world=${CLOCK_WORLD:-auto}
+scenario=${CLOCK_SCENARIO:-random}
 display=:99
 capture_duration=16
 output_duration=13
+scenario_number=''
 
 case "$world" in
     auto)
@@ -48,16 +50,52 @@ case "$world" in
         ;;
 esac
 
+case "$scenario" in
+    random) ;;
+    mushroom) scenario_number=0; scenario_title='Mushroom growth' ;;
+    empty) scenario_number=1; scenario_title='Empty block' ;;
+    star) scenario_number=2; scenario_title='Star attack' ;;
+    high) scenario_number=3; scenario_title='High route' ;;
+    retreat) scenario_number=4; scenario_title='Retreat route' ;;
+    stomp) scenario_number=5; scenario_title='Clean stomp' ;;
+    sidehit) scenario_number=6; scenario_title='Side hit' ;;
+    poison) scenario_number=7; scenario_title='Poison run' ;;
+    *) echo "Unknown Mushroom Clock scenario: $scenario" >&2; exit 2 ;;
+esac
+
+if [ -n "$scenario_number" ]; then
+    key_count=0
+    trim_start=1.4
+    capture_duration=18
+    output_duration=15
+    video_name="mushroomclock-scenario-$scenario.mp4"
+    video_title="Mushroom Clock: $scenario_title"
+fi
+
 lcd_video="$video_dir/$video_name"
-raw_video="$video_dir/.mushroomclock-$world-capture.mp4"
+raw_video="$video_dir/.mushroomclock-$scenario-$world-capture.mp4"
+scenario_file="$build_dir/simdisk/mushroomclock-scenario.txt"
 
 mkdir -p "$video_dir"
 rm -f "$lcd_video" "$raw_video"
+if [ -n "$scenario_number" ]; then
+    printf '%s\n' "$scenario_number" > "$scenario_file"
+else
+    rm -f "$scenario_file"
+fi
 
 Xvfb "$display" -screen 0 900x700x24 -nolisten tcp \
     >/tmp/mushroomclock-video-xvfb.log 2>&1 &
 xvfb_pid=$!
-trap 'kill "$sim_pid" "$xvfb_pid" 2>/dev/null || true' EXIT INT TERM
+cleanup()
+{
+    rm -f "$scenario_file"
+    if [ -n "${sim_pid:-}" ]; then
+        kill "$sim_pid" 2>/dev/null || true
+    fi
+    kill "$xvfb_pid" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
 
 export DISPLAY="$display"
 export SDL_AUDIODRIVER=dummy

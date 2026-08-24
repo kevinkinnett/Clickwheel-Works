@@ -39,6 +39,17 @@
 #define RUNNER_DEATH_POISON 1
 #define RUNNER_DEATH_ENEMY 2
 
+#define SCENARIO_RANDOM -1
+#define SCENARIO_MUSHROOM 0
+#define SCENARIO_EMPTY 1
+#define SCENARIO_STAR 2
+#define SCENARIO_HIGH 3
+#define SCENARIO_RETREAT 4
+#define SCENARIO_STOMP 5
+#define SCENARIO_SIDE_HIT 6
+#define SCENARIO_UNDERGROUND 7
+#define SCENARIO_COUNT 8
+
 #define SOLID_GROUND 1
 #define SOLID_PIPE 2
 #define SOLID_FIRST_BASE 10
@@ -105,6 +116,7 @@ static bool underground_requested;
 static bool underground_cycle;
 static int last_surface_signature = -1;
 static int last_surface_layout = -1;
+static int forced_scenario = SCENARIO_RANDOM;
 static bool use_24_hour = true;
 
 struct level_state
@@ -214,10 +226,44 @@ static bool wants_underground(const struct tm *now)
 {
     bool wanted = in_underground_window(now);
 #ifdef SIMULATOR
+    if (forced_scenario != SCENARIO_RANDOM)
+        return forced_scenario == SCENARIO_UNDERGROUND;
     if (selected_world == 3)
         wanted = true;
 #endif
     return wanted;
+}
+
+static const char *scenario_name(int scenario)
+{
+    static const char *names[SCENARIO_COUNT] = {
+        "MUSHROOM GROWTH", "EMPTY BLOCK", "STAR ATTACK", "HIGH ROUTE",
+        "RETREAT ROUTE", "CLEAN STOMP", "SIDE HIT", "POISON RUN"
+    };
+
+    if (scenario < 0 || scenario >= SCENARIO_COUNT)
+        return NULL;
+    return names[scenario];
+}
+
+static void load_simulator_scenario(void)
+{
+#ifdef SIMULATOR
+    char value[12];
+    int fd = rb->open("/mushroomclock-scenario.txt", O_RDONLY);
+    int count;
+
+    if (fd < 0)
+        return;
+    count = rb->read(fd, value, sizeof(value) - 1);
+    rb->close(fd);
+    if (count <= 0)
+        return;
+    value[count] = '\0';
+    count = rb->atoi(value);
+    if (count >= 0 && count < SCENARIO_COUNT)
+        forced_scenario = count;
+#endif
 }
 
 static int change_selected_world(int current, int direction)
@@ -802,26 +848,64 @@ static void reset_level(void)
         int signature;
         int tries = 0;
 
-        do
+#ifdef SIMULATOR
+        if (forced_scenario != SCENARIO_RANDOM)
         {
-            int power_roll = rb->rand() % 4;
-            level.powerup_kind = power_roll == 0 ? POWER_NONE :
-                                 power_roll == 1 ? POWER_STAR :
-                                                   POWER_MUSHROOM;
-            level.enemy_kind = rb->rand() % 2;
-            layout = rb->rand() % SURFACE_LAYOUT_COUNT;
-            level.power_in_first = (rb->rand() & 1) != 0;
-            level.coin_index = rb->rand() & 1;
-            level.power_index = rb->rand() & 1;
-            signature = level.powerup_kind + level.enemy_kind * 4 +
-                        layout * 8 + level.power_in_first * 24 +
-                        level.coin_index * 48 + level.power_index * 96;
-            tries++;
+            level.powerup_kind = POWER_NONE;
+            level.enemy_kind = ENEMY_GOOMBA;
+            layout = 0;
+            level.power_in_first = false;
+            level.coin_index = 0;
+            level.power_index = 1;
+
+            if (forced_scenario == SCENARIO_MUSHROOM)
+            {
+                level.powerup_kind = POWER_MUSHROOM;
+                level.power_in_first = true;
+                level.coin_index = 0;
+                level.power_index = 1;
+            }
+            else if (forced_scenario == SCENARIO_EMPTY)
+            {
+                level.enemy_kind = ENEMY_TURTLE;
+                layout = 1;
+            }
+            else if (forced_scenario == SCENARIO_STAR)
+            {
+                level.powerup_kind = POWER_STAR;
+                level.power_in_first = true;
+                level.coin_index = 0;
+            }
+            else if (forced_scenario == SCENARIO_HIGH)
+            {
+                level.enemy_kind = ENEMY_TURTLE;
+                layout = 2;
+            }
         }
-        while ((signature == last_surface_signature ||
-                layout == last_surface_layout) && tries < 8);
-        last_surface_signature = signature;
-        last_surface_layout = layout;
+        else
+#endif
+        {
+            do
+            {
+                int power_roll = rb->rand() % 4;
+                level.powerup_kind = power_roll == 0 ? POWER_NONE :
+                                     power_roll == 1 ? POWER_STAR :
+                                                       POWER_MUSHROOM;
+                level.enemy_kind = rb->rand() % 2;
+                layout = rb->rand() % SURFACE_LAYOUT_COUNT;
+                level.power_in_first = (rb->rand() & 1) != 0;
+                level.coin_index = rb->rand() & 1;
+                level.power_index = rb->rand() & 1;
+                signature = level.powerup_kind + level.enemy_kind * 4 +
+                            layout * 8 + level.power_in_first * 24 +
+                            level.coin_index * 48 + level.power_index * 96;
+                tries++;
+            }
+            while ((signature == last_surface_signature ||
+                    layout == last_surface_layout) && tries < 8);
+            last_surface_signature = signature;
+            last_surface_layout = layout;
+        }
 
         if (layout == 0)
         {
@@ -874,6 +958,19 @@ static void reset_level(void)
             if (level.enemy_max_x < level.enemy_min_x)
                 level.enemy_max_x = level.enemy_min_x;
         }
+
+#ifdef SIMULATOR
+        if (forced_scenario != SCENARIO_RANDOM)
+        {
+            int fixed_enemy_x = layout == 2 ? 150 : 154;
+
+            if (forced_scenario == SCENARIO_STOMP ||
+                forced_scenario == SCENARIO_SIDE_HIT)
+                fixed_enemy_x = 42;
+            level.enemy_min_x = fixed_enemy_x - 2;
+            level.enemy_max_x = fixed_enemy_x + 2;
+        }
+#endif
     }
 
     level.runner_x = -14 * 16;
@@ -883,10 +980,21 @@ static void reset_level(void)
     level.runner_direction = 1;
     level.use_detour = !underground_cycle && !level.use_high_route &&
                        (rb->rand() % 2 == 0);
+#ifdef SIMULATOR
+    if (forced_scenario != SCENARIO_RANDOM)
+        level.use_detour = forced_scenario == SCENARIO_RETREAT;
+#endif
     level.detour_started = false;
     level.detour_frames = 0;
     level.coin_block_hit = false;
     level.power_block_hit = false;
+#ifdef SIMULATOR
+    if (forced_scenario == SCENARIO_RETREAT)
+    {
+        level.coin_block_hit = true;
+        level.power_block_hit = true;
+    }
+#endif
     level.coin_block_bounce = 0;
     level.power_block_bounce = 0;
     level.coin_frames = 0;
@@ -894,11 +1002,15 @@ static void reset_level(void)
     level.mushroom_x = (power_block_x() + 2) * 16;
     level.mushroom_y = power_block_y() * 16;
     level.mushroom_vy = 0;
-    level.mushroom_direction = underground_cycle ? -1 : 1;
+    level.mushroom_direction = -1;
     level.enemy_x = (level.enemy_min_x +
                      rb->rand() % (level.enemy_max_x -
                                    level.enemy_min_x + 1)) * 16;
     level.enemy_direction = rb->rand() & 1 ? 1 : -1;
+#ifdef SIMULATOR
+    if (forced_scenario != SCENARIO_RANDOM)
+        level.enemy_direction = -1;
+#endif
     level.enemy_alive = true;
     level.enemy_death_frames = 0;
     level.enemy_death_style = ENEMY_DEATH_NONE;
@@ -944,7 +1056,7 @@ static void hit_power_block(void)
     level.mushroom_x = (power_block_x() + 2) * 16;
     level.mushroom_y = power_block_y() * 16;
     level.mushroom_vy = 0;
-    level.mushroom_direction = underground_cycle ? -1 : 1;
+    level.mushroom_direction = -1;
 }
 
 static void update_enemy(void)
@@ -1093,6 +1205,9 @@ static void update_runner(void)
                  runner_x >= power_x - 13 && runner_x < power_x - 1)
             launch_runner(-60);
         else if (level.enemy_alive && level.star_frames == 0 &&
+#ifdef SIMULATOR
+                 forced_scenario != SCENARIO_SIDE_HIT &&
+#endif
                  runner_x >= enemy_x - 27 &&
                  runner_x < enemy_x - 16)
             launch_runner(-58);
@@ -1103,7 +1218,15 @@ static void update_runner(void)
 
     runner.x = level.runner_x;
     runner.y = level.runner_y - (level.runner_big ? 8 * PS_ONE : 0);
+    if (level.mushroom_mode == 2)
+    {
+        int power_center = level.mushroom_x / PS_ONE + 6;
+        int runner_center = runner.x / PS_ONE + 6;
+        level.runner_direction = runner_center < power_center ? 1 : -1;
+    }
     runner.vx = level.runner_direction * PS_ONE;
+    if (level.mushroom_mode == 1)
+        runner.vx = 0;
     runner.vy = level.runner_vy;
     runner.width = 13;
     runner.height = level.runner_big ? 24 : 16;
@@ -1155,6 +1278,7 @@ static void update_runner(void)
                                level.runner_y / 16))
     {
         level.mushroom_mode = 0;
+        level.runner_direction = 1;
         if (level.powerup_kind == POWER_POISON)
         {
             level.death_frames = 60;
@@ -1494,7 +1618,9 @@ static void draw_notice(const struct world_palette *p)
     if (notice_frames <= 0)
         return;
 
-    if (underground_cycle)
+    if (forced_scenario != SCENARIO_RANDOM)
+        label = scenario_name(forced_scenario);
+    else if (underground_cycle)
         label = worlds[3].name;
     else
         label = selected_world == 0 ? worlds[0].name : p->name;
@@ -1528,6 +1654,7 @@ enum plugin_status plugin_start(const void *parameter)
     rb->lcd_setfont(FONT_SYSFIXED);
     backlight_ignore_timeout();
     start_time = rb->get_time();
+    load_simulator_scenario();
     rb->srand((unsigned int)*rb->current_tick ^
               (unsigned int)(start_time->tm_hour * 3600 +
                              start_time->tm_min * 60 +
@@ -1535,6 +1662,8 @@ enum plugin_status plugin_start(const void *parameter)
     last_surface_signature = -1;
     last_surface_layout = -1;
     underground_requested = wants_underground(start_time);
+    if (forced_scenario != SCENARIO_RANDOM)
+        notice_frames = 36;
     reset_level();
 
     while (!quit)
