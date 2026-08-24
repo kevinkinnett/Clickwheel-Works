@@ -61,9 +61,10 @@ separate death animations. Side contact leaves the enemy alive and hurts or
 kills the runner.
 Auto mode follows the time of day.
 At 50 seconds before each hour, the next natural lap reset starts an underground
-stage. Underground laps have a different block layout, no flag, a turtle enemy,
-and a poison mushroom that kills the runner. The next lap reset after 30 seconds
-past the hour returns above ground. Day, night, and sunset can also be selected
+stage. Underground laps rotate through three block layouts, vary the question
+blocks, have no flag, use a turtle enemy, and end with a poison mushroom that
+kills the runner. The next lap reset after 30 seconds past the hour returns
+above ground. Day, night, and sunset can also be selected
 with the click wheel. The simulator retains a manual underground selection for
 repeatable visual testing; the iPod build schedules it only from the clock.
 

@@ -252,7 +252,8 @@ The final scene includes:
   seconds before the hour and 30 seconds after it.
 - Moving clouds, hills, ground tiles, bricks, question blocks, a pipe, a
   Goomba-like enemy, a coin, a mushroom, and a goal flag above ground.
-- A separate underground layout with no flag, a turtle, and a poison mushroom.
+- Three underground block layouts with varying question blocks, no flag, a
+  turtle, and a poison mushroom.
 - A runner with gravity, jumping, surface collisions, enemy collision, and
   power-up state.
 - Two sparse block pairs whose question-block roles can swap between laps.

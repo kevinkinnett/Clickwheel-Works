@@ -22,6 +22,7 @@
 #define GROUND_Y 146
 #define WORLD_COUNT 5
 #define SURFACE_LAYOUT_COUNT 3
+#define UNDERGROUND_LAYOUT_COUNT 3
 #define MAX_LEVEL_BLOCKS 4
 
 #define POWER_NONE 0
@@ -117,6 +118,7 @@ static bool underground_requested;
 static bool underground_cycle;
 static int last_surface_signature = -1;
 static int last_surface_layout = -1;
+static int last_underground_layout = -1;
 static int forced_scenario = SCENARIO_RANDOM;
 static bool use_24_hour = true;
 
@@ -864,22 +866,63 @@ static void reset_level(void)
 
     if (underground_cycle)
     {
+        int tries = 0;
+
+        do
+        {
+            layout = rb->rand() % UNDERGROUND_LAYOUT_COUNT;
+            tries++;
+        }
+        while (layout == last_underground_layout && tries < 8);
+        last_underground_layout = layout;
+
         level.powerup_kind = POWER_POISON;
         level.enemy_kind = ENEMY_TURTLE;
-        level.power_in_first = false;
-        level.first_x = 36;
-        level.first_y = 87;
-        level.first_count = 4;
-        level.coin_index = 0;
-        level.second_x = 100;
-        level.second_y = 103;
-        level.second_count = 3;
-        level.power_index = 2;
-        level.pipe_x = 180;
-        level.pipe_y = 121;
+        level.power_in_first = (rb->rand() & 1) != 0;
         level.use_high_route = false;
-        level.enemy_min_x = 154;
-        level.enemy_max_x = 174;
+
+        if (layout == 0)
+        {
+            level.first_x = 36;
+            level.first_y = 87;
+            level.first_count = 4;
+            level.second_x = 100;
+            level.second_y = 103;
+            level.second_count = 3;
+            level.pipe_x = 180;
+            level.pipe_y = 121;
+            level.enemy_min_x = 154;
+            level.enemy_max_x = 174;
+        }
+        else if (layout == 1)
+        {
+            level.first_x = 44;
+            level.first_y = 103;
+            level.first_count = 3;
+            level.second_x = 104;
+            level.second_y = 87;
+            level.second_count = 3;
+            level.pipe_x = 180;
+            level.pipe_y = 121;
+            level.enemy_min_x = 150;
+            level.enemy_max_x = 172;
+        }
+        else
+        {
+            level.first_x = 40;
+            level.first_y = 91;
+            level.first_count = 3;
+            level.second_x = 108;
+            level.second_y = 107;
+            level.second_count = 3;
+            level.pipe_x = 184;
+            level.pipe_y = 117;
+            level.enemy_min_x = 152;
+            level.enemy_max_x = 176;
+        }
+
+        level.coin_index = rb->rand() % level.first_count;
+        level.power_index = rb->rand() % level.second_count;
     }
     else
     {
@@ -1796,6 +1839,7 @@ enum plugin_status plugin_start(const void *parameter)
                              start_time->tm_sec));
     last_surface_signature = -1;
     last_surface_layout = -1;
+    last_underground_layout = -1;
     underground_requested = wants_underground(start_time);
     if (forced_scenario != SCENARIO_RANDOM)
         notice_frames = 36;
