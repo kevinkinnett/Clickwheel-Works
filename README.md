@@ -11,7 +11,8 @@ fixed-point motion and collision library for embedded C games. It has no
 Rockbox dependency, heap
 allocation, floating point, file I/O, or operating-system calls. Mushroom Clock
 uses it for ground and block collision, pipe contacts, moving power-ups, actor
-overlap, and strict stomp classification.
+overlap, strict stomp classification, destructible colliders, and
+bottom-anchored character resizing.
 
 Run its host tests without booting Rockbox.
 

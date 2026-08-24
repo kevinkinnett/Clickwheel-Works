@@ -78,6 +78,40 @@ static void test_pipe_stops_horizontal_motion(void)
     assert(body.x == 155 * PS_ONE);
 }
 
+static void test_world_solid_mutation(void)
+{
+    struct ps_world world;
+
+    ps_world_clear(&world);
+    assert(ps_world_add_solid(&world, 10, 16, 32, 16, 16));
+    assert(ps_world_add_solid(&world, 11, 48, 64, 16, 16));
+    assert(ps_world_update_solid(&world, 11, 52, 60, 20, 12));
+    assert(world.solids[1].bounds.x == 52);
+    assert(world.solids[1].bounds.y == 60);
+    assert(world.solids[1].bounds.width == 20);
+    assert(world.solids[1].bounds.height == 12);
+    assert(!ps_world_update_solid(&world, 99, 0, 0, 1, 1));
+    assert(ps_world_remove_solid(&world, 10));
+    assert(world.solid_count == 1);
+    assert(world.solids[0].id == 11);
+    assert(!ps_world_remove_solid(&world, 99));
+}
+
+static void test_body_resize_preserves_bottom(void)
+{
+    struct ps_body body = { 20 * PS_ONE, 84 * PS_ONE,
+                            0, 0, 13, 16 };
+
+    assert(ps_body_resize_from_bottom(&body, 13, 24));
+    assert(body.y == 76 * PS_ONE);
+    assert(body.y + body.height * PS_ONE == 100 * PS_ONE);
+    assert(ps_body_resize_from_bottom(&body, 15, 12));
+    assert(body.width == 15);
+    assert(body.y == 88 * PS_ONE);
+    assert(body.y + body.height * PS_ONE == 100 * PS_ONE);
+    assert(!ps_body_resize_from_bottom(&body, 0, 12));
+}
+
 static void test_stomp_requires_top_crossing(void)
 {
     struct ps_body enemy = { 100 * PS_ONE, 133 * PS_ONE,
@@ -88,6 +122,7 @@ static void test_stomp_requires_top_crossing(void)
     struct ps_body old_stomp = { 100 * PS_ONE, 110 * PS_ONE,
                                  0, 0, 13, 16 };
     struct ps_body stomp = old_stomp;
+    struct ps_body exact_touch = old_stomp;
 
     side.x += PS_ONE;
     assert(ps_overlap(&side, &enemy));
@@ -97,6 +132,11 @@ static void test_stomp_requires_top_crossing(void)
     stomp.vy = 9 * PS_ONE;
     assert(ps_overlap(&stomp, &enemy));
     assert(ps_crossed_top(&old_stomp, &stomp, &enemy, 2));
+
+    exact_touch.y = 117 * PS_ONE;
+    exact_touch.vy = 7 * PS_ONE;
+    assert(!ps_overlap(&exact_touch, &enemy));
+    assert(ps_crossed_top(&old_stomp, &exact_touch, &enemy, 2));
 }
 
 int main(void)
@@ -106,6 +146,8 @@ int main(void)
     test_question_block_underside();
     test_center_selects_adjacent_question_block();
     test_pipe_stops_horizontal_motion();
+    test_world_solid_mutation();
+    test_body_resize_preserves_bottom();
     test_stomp_requires_top_crossing();
     puts("PocketStep tests passed");
     return 0;

@@ -15,6 +15,8 @@ four fractional bits, so one pixel equals `PS_ONE`.
 - Separate horizontal and vertical collision resolution.
 - Stable landing on solid rectangles.
 - Collider IDs for question blocks, pipes, ground, and application events.
+- Collider removal and updates by ID for breakable or moving geometry.
+- Body resizing that keeps an actor's feet planted.
 - Actor overlap tests.
 - Strict top crossing for stomps and similar interactions.
 
@@ -74,20 +76,36 @@ if (movement.hit_ceiling && movement.vertical_id == QUESTION_BLOCK_ID)
     release_coin();
 ```
 
+IDs also let the application change the world without rebuilding it.
+Use a unique ID for each solid. Removal and updates affect the first matching
+solid.
+
+```c
+ps_world_remove_solid(&world, BROKEN_BRICK_ID);
+ps_world_update_solid(&world, MOVING_PLATFORM_ID, x, y, width, height);
+```
+
+Resize a body from its bottom edge when a power-up changes its height. The left
+edge and bottom edge stay fixed.
+
+```c
+ps_body_resize_from_bottom(&player, player.width, 24);
+```
+
 For an enemy contact, test overlap and then classify the approach.
 
 ```c
-if (ps_overlap(&player, &enemy)) {
-    if (ps_crossed_top(&previous_player, &player, &enemy, 2))
-        stomp_enemy();
-    else
-        hurt_player();
-}
+if (ps_crossed_top(&previous_player, &player, &enemy, 2))
+    stomp_enemy();
+else if (ps_overlap(&player, &enemy))
+    hurt_player();
 ```
 
 The two-pixel argument is a tolerance around the enemy's top edge. It does not
 turn a horizontal impact into a stomp because the player's previous feet must
-have been above that edge.
+have been above that edge. Do not place `ps_crossed_top` inside an overlap test.
+The body can land exactly on the enemy's top edge without a strict overlap at
+the end of the update.
 
 ## Limits
 

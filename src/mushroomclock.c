@@ -1166,6 +1166,8 @@ static void break_brick(int solid_id)
         index = solid_id - SOLID_FIRST_BASE;
         if (index == level.coin_index || level.first_broken[index])
             return;
+        if (!ps_world_remove_solid(&collision_world, solid_id))
+            return;
         level.first_broken[index] = true;
         level.brick_debris_x = level.first_x + index * 16;
         level.brick_debris_y = level.first_y;
@@ -1176,6 +1178,8 @@ static void break_brick(int solid_id)
         index = solid_id - SOLID_SECOND_BASE;
         if (index == level.power_index || level.second_broken[index])
             return;
+        if (!ps_world_remove_solid(&collision_world, solid_id))
+            return;
         level.second_broken[index] = true;
         level.brick_debris_x = level.second_x + index * 16;
         level.brick_debris_y = level.second_y;
@@ -1184,7 +1188,6 @@ static void break_brick(int solid_id)
         return;
 
     level.brick_debris_frames = 24;
-    rebuild_collision_world();
 }
 
 static void update_enemy(void)
@@ -1378,7 +1381,11 @@ static void update_runner(void)
     }
 
     runner.x = level.runner_x;
-    runner.y = level.runner_y - (level.runner_big ? 8 * PS_ONE : 0);
+    runner.y = level.runner_y;
+    runner.width = 13;
+    runner.height = 16;
+    if (level.runner_big)
+        ps_body_resize_from_bottom(&runner, 13, 24);
     if (level.mushroom_mode == 2 && level.powerup_roam_frames == 0)
     {
         int power_center = level.mushroom_x / PS_ONE + 6;
@@ -1397,15 +1404,15 @@ static void update_runner(void)
         hold_for_powerup)
         runner.vx = 0;
     runner.vy = level.runner_vy;
-    runner.width = 13;
-    runner.height = level.runner_big ? 24 : 16;
     ps_apply_gravity(&runner, 4, 72);
     impact_vy = runner.vy;
     previous_runner = runner;
     movement = ps_move(&collision_world, &runner);
 
     level.runner_x = runner.x;
-    level.runner_y = runner.y + (level.runner_big ? 8 * PS_ONE : 0);
+    if (level.runner_big)
+        ps_body_resize_from_bottom(&runner, 13, 16);
+    level.runner_y = runner.y;
     level.runner_vy = runner.vy;
     level.runner_on_surface = movement.hit_floor != 0;
 
@@ -1469,9 +1476,12 @@ static void update_runner(void)
     {
         int enemy_height = level.enemy_kind == ENEMY_TURTLE ? 17 : 13;
         int enemy_top = GROUND_Y - enemy_height;
-        runner.y = level.runner_y - (level.runner_big ? 8 * PS_ONE : 0);
+        runner.y = level.runner_y;
         runner.vy = impact_vy;
-        runner.height = level.runner_big ? 24 : 16;
+        runner.width = 13;
+        runner.height = 16;
+        if (level.runner_big)
+            ps_body_resize_from_bottom(&runner, 13, 24);
         enemy.x = level.enemy_x;
         enemy.y = enemy_top * PS_ONE;
         enemy.vx = 0;

@@ -65,6 +65,11 @@ struct ps_move_result
 void ps_world_clear(struct ps_world *world);
 int ps_world_add_solid(struct ps_world *world, int id,
                        int x, int y, int width, int height);
+int ps_world_remove_solid(struct ps_world *world, int id);
+int ps_world_update_solid(struct ps_world *world, int id,
+                          int x, int y, int width, int height);
+int ps_body_resize_from_bottom(struct ps_body *body,
+                               int width, int height);
 void ps_apply_gravity(struct ps_body *body, int acceleration,
                       int terminal_velocity);
 struct ps_move_result ps_move(struct ps_world *world,
@@ -105,6 +110,60 @@ int ps_world_add_solid(struct ps_world *world, int id,
     solid->bounds.width = width;
     solid->bounds.height = height;
     solid->id = id;
+    return 1;
+}
+
+int ps_world_remove_solid(struct ps_world *world, int id)
+{
+    int i;
+
+    for (i = 0; i < world->solid_count; ++i)
+    {
+        int j;
+
+        if (world->solids[i].id != id)
+            continue;
+        for (j = i; j + 1 < world->solid_count; ++j)
+            world->solids[j] = world->solids[j + 1];
+        world->solid_count--;
+        return 1;
+    }
+    return 0;
+}
+
+int ps_world_update_solid(struct ps_world *world, int id,
+                          int x, int y, int width, int height)
+{
+    int i;
+
+    if (width <= 0 || height <= 0)
+        return 0;
+    for (i = 0; i < world->solid_count; ++i)
+    {
+        struct ps_solid *solid = &world->solids[i];
+
+        if (solid->id != id)
+            continue;
+        solid->bounds.x = x;
+        solid->bounds.y = y;
+        solid->bounds.width = width;
+        solid->bounds.height = height;
+        return 1;
+    }
+    return 0;
+}
+
+int ps_body_resize_from_bottom(struct ps_body *body,
+                               int width, int height)
+{
+    int bottom;
+
+    if (width <= 0 || height <= 0)
+        return 0;
+    bottom = body->y + body->height * PS_ONE;
+    body->y = bottom - height * PS_ONE;
+    body->width = width;
+    body->height = height;
     return 1;
 }
 
