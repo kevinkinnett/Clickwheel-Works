@@ -48,7 +48,8 @@ gravity, and collision checks against the ground, blocks, pipe, enemies, and
 power-ups. Each surface level has two pairs of blocks. One question block
 releases a coin. The other releases a coin, mushroom, or star.
 Their order, position within each pair, and height can change between laps.
-The mushroom changes the runner into a taller form. The goal flag stays at the
+The mushroom changes the runner into a taller form. Big Mario breaks individual
+bricks when he hits them from below. The goal flag stays at the
 top until the runner reaches the pole, then slides down. The HUD labels the date and seconds and shows the
 iPod battery as a gauge with a percentage. Each surface lap randomly chooses a
 power-up, enemy type, enemy position and direction, and one of three sparse

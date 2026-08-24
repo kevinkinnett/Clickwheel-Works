@@ -22,6 +22,7 @@
 #define GROUND_Y 146
 #define WORLD_COUNT 5
 #define SURFACE_LAYOUT_COUNT 3
+#define MAX_LEVEL_BLOCKS 4
 
 #define POWER_NONE 0
 #define POWER_MUSHROOM 1
@@ -159,10 +160,15 @@ struct level_state
     int first_y;
     int first_count;
     int coin_index;
+    bool first_broken[MAX_LEVEL_BLOCKS];
     int second_x;
     int second_y;
     int second_count;
     int power_index;
+    bool second_broken[MAX_LEVEL_BLOCKS];
+    int brick_debris_frames;
+    int brick_debris_x;
+    int brick_debris_y;
     int pipe_x;
     int pipe_y;
     bool use_high_route;
@@ -408,6 +414,34 @@ static void draw_brick(int x, int y, const struct world_palette *p)
     rb->lcd_drawline(x + 8, y + 4, x + 8, y + 9);
     rb->lcd_drawline(x + 1, y + 10, x + 14, y + 10);
     rb->lcd_drawline(x + 4, y + 11, x + 4, y + 14);
+}
+
+static void draw_brick_piece(int x, int y, const struct world_palette *p)
+{
+    use_color(p->shadow);
+    rb->lcd_fillrect(x, y, 5, 5);
+    use_color(p->brick);
+    rb->lcd_fillrect(x + 1, y + 1, 3, 3);
+}
+
+static void draw_brick_debris(const struct world_palette *p)
+{
+    int age;
+    int fall;
+    int x;
+    int y;
+
+    if (level.brick_debris_frames <= 0)
+        return;
+
+    age = 24 - level.brick_debris_frames;
+    fall = age * age / 16;
+    x = level.brick_debris_x;
+    y = level.brick_debris_y;
+    draw_brick_piece(x + 1 - age / 2, y + 1 - age + fall, p);
+    draw_brick_piece(x + 10 + age / 2, y + 1 - age + fall, p);
+    draw_brick_piece(x + 1 - age, y + 9 - age / 2 + fall, p);
+    draw_brick_piece(x + 10 + age, y + 9 - age / 2 + fall, p);
 }
 
 static void draw_question_block(int x, int y, bool used,
@@ -800,11 +834,19 @@ static void rebuild_collision_world(void)
                        -64, GROUND_Y, LCD_WIDTH + 128,
                        LCD_HEIGHT - GROUND_Y);
     for (i = 0; i < level.first_count; ++i)
-        ps_world_add_solid(&collision_world, SOLID_FIRST_BASE + i,
-                           level.first_x + i * 16, level.first_y, 16, 16);
+    {
+        if (!level.first_broken[i])
+            ps_world_add_solid(&collision_world, SOLID_FIRST_BASE + i,
+                               level.first_x + i * 16,
+                               level.first_y, 16, 16);
+    }
     for (i = 0; i < level.second_count; ++i)
-        ps_world_add_solid(&collision_world, SOLID_SECOND_BASE + i,
-                           level.second_x + i * 16, level.second_y, 16, 16);
+    {
+        if (!level.second_broken[i])
+            ps_world_add_solid(&collision_world, SOLID_SECOND_BASE + i,
+                               level.second_x + i * 16,
+                               level.second_y, 16, 16);
+    }
     ps_world_add_solid(&collision_world, SOLID_PIPE,
                        level.pipe_x, level.pipe_y,
                        30, GROUND_Y - level.pipe_y);
@@ -814,6 +856,7 @@ static void reset_level(void)
 {
     bool previous_underground = underground_cycle;
     int layout = 0;
+    int i;
 
     underground_cycle = underground_requested;
     if (previous_underground != underground_cycle)
@@ -1017,6 +1060,12 @@ static void reset_level(void)
     level.hurt_frames = 0;
     level.death_frames = 0;
     level.runner_death_cause = RUNNER_DEATH_NONE;
+    for (i = 0; i < MAX_LEVEL_BLOCKS; ++i)
+    {
+        level.first_broken[i] = false;
+        level.second_broken[i] = false;
+    }
+    level.brick_debris_frames = 0;
     level.flag_grabbed = false;
     level.flag_y = 66;
     rebuild_collision_world();
@@ -1062,6 +1111,37 @@ static void hit_power_block(void)
     level.mushroom_y = power_block_y() * 16;
     level.mushroom_vy = 0;
     level.mushroom_direction = -1;
+}
+
+static void break_brick(int solid_id)
+{
+    int index;
+
+    if (solid_id >= SOLID_FIRST_BASE &&
+        solid_id < SOLID_FIRST_BASE + level.first_count)
+    {
+        index = solid_id - SOLID_FIRST_BASE;
+        if (index == level.coin_index || level.first_broken[index])
+            return;
+        level.first_broken[index] = true;
+        level.brick_debris_x = level.first_x + index * 16;
+        level.brick_debris_y = level.first_y;
+    }
+    else if (solid_id >= SOLID_SECOND_BASE &&
+             solid_id < SOLID_SECOND_BASE + level.second_count)
+    {
+        index = solid_id - SOLID_SECOND_BASE;
+        if (index == level.power_index || level.second_broken[index])
+            return;
+        level.second_broken[index] = true;
+        level.brick_debris_x = level.second_x + index * 16;
+        level.brick_debris_y = level.second_y;
+    }
+    else
+        return;
+
+    level.brick_debris_frames = 24;
+    rebuild_collision_world();
 }
 
 static void update_enemy(void)
@@ -1227,6 +1307,13 @@ static void update_runner(void)
                  runner_x >= level.first_x + level.first_count * 16 - 20 &&
                  runner_x < level.first_x + level.first_count * 16 - 8)
             launch_runner(-58);
+#ifdef SIMULATOR
+        else if (forced_scenario == SCENARIO_MUSHROOM &&
+                 level.runner_big && !level.first_broken[1] &&
+                 runner_x >= level.first_x - 1 &&
+                 runner_x < level.first_x + 11)
+            launch_runner(-60);
+#endif
         else if (!level.coin_block_hit &&
                  runner_x >= coin_x - 20 && runner_x < coin_x - 8)
             launch_runner(-64);
@@ -1285,7 +1372,11 @@ static void update_runner(void)
         int second_question = SOLID_SECOND_BASE + level.power_index;
 
         level.runner_vy = 12;
-        if (movement.vertical_id == first_question)
+        if (level.runner_big &&
+            movement.vertical_id != first_question &&
+            movement.vertical_id != second_question)
+            break_brick(movement.vertical_id);
+        else if (movement.vertical_id == first_question)
         {
             if (level.power_in_first)
                 hit_power_block();
@@ -1397,6 +1488,8 @@ static void update_level(void)
         level.coin_frames--;
     if (level.powerup_roam_frames > 0)
         level.powerup_roam_frames--;
+    if (level.brick_debris_frames > 0)
+        level.brick_debris_frames--;
     if (level.star_frames > 0)
         level.star_frames--;
     if (level.hurt_frames > 0)
@@ -1452,7 +1545,9 @@ static void draw_level_action(const struct world_palette *p)
     for (i = 0; i < level.first_count; ++i)
     {
         int x = level.first_x + i * 16;
-        if (i == level.coin_index)
+        if (level.first_broken[i])
+            continue;
+        else if (i == level.coin_index)
             draw_question_block(x, first_draw_y,
                                 level.power_in_first ?
                                 level.power_block_hit :
@@ -1463,7 +1558,9 @@ static void draw_level_action(const struct world_palette *p)
     for (i = 0; i < level.second_count; ++i)
     {
         int x = level.second_x + i * 16;
-        if (i == level.power_index)
+        if (level.second_broken[i])
+            continue;
+        else if (i == level.power_index)
             draw_question_block(x, second_draw_y,
                                 level.power_in_first ?
                                 level.coin_block_hit :
@@ -1471,6 +1568,7 @@ static void draw_level_action(const struct world_palette *p)
         else
             draw_brick(x, level.second_y, p);
     }
+    draw_brick_debris(p);
     draw_pipe(level.pipe_x, level.pipe_y, p);
 
     if (level.coin_frames > 0)
