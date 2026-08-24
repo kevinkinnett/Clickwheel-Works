@@ -14,9 +14,10 @@ uses it for ground and block collision, pipe contacts, moving power-ups, actor
 overlap, strict stomp classification, destructible colliders, and
 bottom-anchored character resizing.
 
-The optional `pocketstep_grid.h` and `pocketstep_story.h` modules add
-fixed-memory tile routing, facing interaction probes, and completion-driven
-autonomous sequences. Story Clock uses them for its top-down vignette.
+Optional modules add fixed-memory tile routing, facing interaction probes,
+completion-driven autonomous sequences, stable foot-Y draw ordering,
+directional sprite animation, caller-owned scene descriptions, and stateless
+tile variation. Story Clock uses the full top-down set for its vignette.
 
 Run its host tests without booting Rockbox.
 
@@ -28,6 +29,13 @@ The API and limits are documented in the
 [`PocketStep README`](pocketstep/README.md). PocketStep also lives in its own
 [GitHub repository](https://github.com/kevinkinnett/PocketStep). The engine uses
 the MIT License. The Rockbox plugins use GPL-2.0-or-later.
+
+Pixel art is compiled by
+[`scripts/compile-pocketstep-assets.py`](scripts/compile-pocketstep-assets.py).
+The compiler reads a JSON manifest, applies declared crop, assembly, resize,
+transparency, tint, and RGB565 conversion steps, then atomically replaces the
+generated C header. See the
+[`asset compiler guide`](pocketstep/ASSETS.md) for the manifest format.
 
 ## Chronolith
 
@@ -81,12 +89,21 @@ collects an ember key, speaks with Mira, follows a collision-safe route outside,
 meets Tovin, reaches the hill beacon, and then begins the vignette again.
 
 The program uses caller-owned breadth-first-search storage, fixed-point motion
-between tile centers, a small foot collider, foot-Y depth sorting, two-line
-automatically timed dialogue, and an inventory indicator. The clock continues
-to read Rockbox time during movement and conversations. Outdoor colors follow
-day, evening, and night while the map and collision cells remain unchanged.
-Simulator-only scenario files can force a palette for deterministic review.
-All maps, characters, dialogue, and pixel art are original to this project.
+between tile centers, a small foot collider, shared foot-Y depth sorting,
+directional animation selection, two-line automatically timed dialogue, and an
+inventory indicator. The clock continues to read Rockbox time during movement
+and conversations. Outdoor colors follow day, evening, and night while the map
+and collision cells remain unchanged. Simulator-only scenario files can force
+a palette for deterministic review. Characters and story objects are original
+project artwork. The outdoor ground, path, flowers, and trees use selected CC0
+tiles from Kenney's Tiny Town pack, with its license retained in the asset tree.
+
+Regenerate the checked-in Story Clock bitmap header after changing source art
+or its manifest:
+
+```powershell
+python scripts/compile-pocketstep-assets.py assets/storyclock/assets.json
+```
 
 ## Controls
 

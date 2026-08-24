@@ -27,6 +27,49 @@ physics usable in Rockbox, a command-line test, or another embedded target.
 PocketStep currently powers Mushroom Clock and the autonomous Story Clock in
 [Clickwheel Works](https://github.com/kevinkinnett/Clickwheel-Works).
 
+## Asset compiler
+
+`tools/asset_compiler.py` converts manifest-declared PNG art into deterministic
+Rockbox RGB565 headers. It handles crops, assembly, nearest-neighbor resizing,
+transparency, palette tints, provenance comments, validation, and atomic output.
+The compiler is a build tool and is not linked into the C runtime. See
+[`ASSETS.md`](ASSETS.md) for its JSON format and command-line use.
+
+## Draw ordering
+
+`pocketstep_draw.h` keeps a caller-owned list in stable ascending foot-Y order.
+It stores application-defined kind, position, and ID fields but never draws
+them. Equal-depth records retain insertion order. A full list rejects the new
+record without changing records already accepted.
+
+```c
+struct ps_drawable storage[24];
+struct ps_draw_list draw_list;
+struct ps_drawable actor = { ACTOR, x, y, feet_y, actor_id };
+
+ps_draw_list_init(&draw_list, storage, 24);
+ps_draw_list_add(&draw_list, &actor);
+for (i = 0; i < draw_list.count; ++i)
+    draw_record(ps_draw_list_get(&draw_list, i));
+```
+
+## Directional animation
+
+`pocketstep_anim.h` maps four facing directions to sprite-sheet rows and picks
+an idle or moving frame. Moving frames use accumulated whole-pixel distance,
+so a stalled actor does not animate in place. The result is a source rectangle;
+the application still owns all Rockbox or SDL calls.
+
+```c
+const struct ps_anim_sheet walk = {
+    80, 80, 20, 20, 4, 0, { 0, 3, 2, 1 }
+};
+struct ps_anim_frame frame;
+
+ps_anim_select(&walk, facing, moving, distance, 4, &frame);
+draw_sprite_part(frame.x, frame.y, frame.width, frame.height);
+```
+
 ## Grid navigation
 
 `pocketstep_grid.h` is an optional module for fixed-screen top-down games. It
@@ -117,6 +160,28 @@ the actor moves between cell centers. Dialogue and collection cannot start
 early because the director advances only after the walk callback reports
 completion. If a destination has no route, the callback fails and the
 application keeps a visible diagnostic on screen instead of crossing a wall.
+
+## Scene descriptions
+
+`pocketstep_scene.h` groups caller-owned tile values, a `ps_grid`, interaction
+regions, and a spawn cell. Validation catches mismatched dimensions, missing
+arrays, invalid region storage, and blocked or out-of-range spawns. The scene
+does not own its arrays and does not change grid pathfinding.
+
+Cosmetic tile variation is stateless. Coordinates, a scene seed, and the number
+of variants always produce the same in-range index. Changing the seed can alter
+the visible tile choices without touching collision or route data.
+
+```c
+struct ps_scene room = {
+    width, height, tiles,
+    { width, height, blocked },
+    regions, region_count, { spawn_x, spawn_y }, 42
+};
+
+if (ps_scene_valid(&room))
+    variant = ps_tile_variation(column, row, room.variation_seed, 3);
+```
 
 ## Build and test
 

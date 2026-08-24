@@ -16,10 +16,13 @@ for source_name in $supported_plugins; do
     cp "/project/src/$source_name.c" "$rockbox_src/apps/plugins/$source_name.c"
     sed -i 's/\r$//' "$rockbox_src/apps/plugins/$source_name.c"
 done
-for header_name in pocketstep pocketstep_grid pocketstep_story; do
+for header_name in pocketstep pocketstep_grid pocketstep_story \
+                   pocketstep_draw pocketstep_anim pocketstep_scene; do
     cp "/project/pocketstep/$header_name.h" "$rockbox_src/apps/plugins/$header_name.h"
     sed -i 's/\r$//' "$rockbox_src/apps/plugins/$header_name.h"
 done
+cp /project/src/storyclock_assets.h "$rockbox_src/apps/plugins/storyclock_assets.h"
+sed -i 's/\r$//' "$rockbox_src/apps/plugins/storyclock_assets.h"
 
 for source_name in $supported_plugins; do
     if ! grep -qxF "$source_name.c" "$rockbox_src/apps/plugins/SOURCES"; then

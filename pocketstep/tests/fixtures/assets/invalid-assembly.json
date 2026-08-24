@@ -1,0 +1,13 @@
+{
+  "format": 1,
+  "output": "generated.h",
+  "guard": "FIXTURE_ASSETS_H",
+  "sources": { "pixels": { "path": "source.png" } },
+  "assets": [
+    { "name": "bad", "operations": [
+      { "op": "assemble", "size": [2, 2], "layers": [
+        { "source": "pixels", "at": [1, 1] }
+      ] }
+    ] }
+  ]
+}

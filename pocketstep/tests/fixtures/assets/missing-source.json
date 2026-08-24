@@ -1,0 +1,9 @@
+{
+  "format": 1,
+  "output": "generated.h",
+  "guard": "FIXTURE_ASSETS_H",
+  "sources": { "missing": { "path": "does-not-exist.png" } },
+  "assets": [
+    { "name": "bad", "operations": [{ "op": "source", "source": "missing" }] }
+  ]
+}

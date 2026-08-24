@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "output": "generated.h",
+  "guard": "FIXTURE_ASSETS_H",
+  "transparent_color": [300, 0, 255],
+  "sources": { "pixels": { "path": "source.png" } },
+  "assets": [
+    { "name": "bad", "operations": [{ "op": "source", "source": "pixels" }] }
+  ]
+}

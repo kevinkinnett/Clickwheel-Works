@@ -17,6 +17,13 @@
 #include "pocketstep_grid.h"
 #define POCKETSTEP_STORY_IMPLEMENTATION
 #include "pocketstep_story.h"
+#define POCKETSTEP_DRAW_IMPLEMENTATION
+#include "pocketstep_draw.h"
+#define POCKETSTEP_ANIM_IMPLEMENTATION
+#include "pocketstep_anim.h"
+#define POCKETSTEP_SCENE_IMPLEMENTATION
+#include "pocketstep_scene.h"
+#include "storyclock_assets.h"
 
 #if !defined(HAVE_LCD_COLOR)
 #error Story Clock requires a color display
@@ -71,25 +78,6 @@ struct palette
     unsigned int water;
     unsigned int text;
     unsigned int box;
-};
-
-struct scene_definition
-{
-    const unsigned char *tiles;
-    const unsigned char *blocked;
-    const struct ps_region *regions;
-    int region_count;
-    int spawn_x;
-    int spawn_y;
-};
-
-struct drawable
-{
-    int kind;
-    int x;
-    int y;
-    int foot_y;
-    int id;
 };
 
 struct story_state
@@ -177,9 +165,25 @@ static const struct ps_region outdoor_regions[] = {
     { { 10 * TILE_SIZE + MAP_GUTTER, 2 * TILE_SIZE, 16, 16 }, REGION_BEACON }
 };
 
-static const struct scene_definition scenes[] = {
-    { house_tiles, house_blocked, house_regions, ARRAYLEN(house_regions), 6, 7 },
-    { outdoor_tiles, outdoor_blocked, outdoor_regions, ARRAYLEN(outdoor_regions), 6, 8 }
+static const struct ps_scene scenes[] = {
+    { MAP_WIDTH, MAP_HEIGHT, house_tiles,
+      { MAP_WIDTH, MAP_HEIGHT, house_blocked },
+      house_regions, ARRAYLEN(house_regions), { 6, 7 }, 117 },
+    { MAP_WIDTH, MAP_HEIGHT, outdoor_tiles,
+      { MAP_WIDTH, MAP_HEIGHT, outdoor_blocked },
+      outdoor_regions, ARRAYLEN(outdoor_regions), { 6, 8 }, 73102 }
+};
+
+static const struct ps_anim_sheet actor_animation = {
+    STORY_WALK_SHEET_WIDTH, STORY_WALK_SHEET_HEIGHT,
+    STORY_WALK_FRAME_SIZE, STORY_WALK_FRAME_SIZE,
+    4, 0, { 0, 3, 2, 1 }
+};
+
+static const struct ps_anim_sheet npc_animation = {
+    STORY_WALK_SHEET_WIDTH, STORY_WALK_SHEET_HEIGHT,
+    STORY_WALK_FRAME_SIZE, STORY_WALK_FRAME_SIZE,
+    2, 0, { 3, 3, 3, 3 }
 };
 
 static const struct palette indoor_palette = {
@@ -201,23 +205,6 @@ static const struct palette night_palette = {
     LCD_RGBPACK(34, 62, 75), LCD_RGBPACK(42, 75, 84), LCD_RGBPACK(16, 25, 43),
     LCD_RGBPACK(46, 77, 91), LCD_RGBPACK(153, 190, 176), LCD_RGBPACK(234, 201, 103),
     LCD_RGBPACK(34, 66, 111), LCD_RGBPACK(210, 228, 199), LCD_RGBPACK(13, 20, 36)
-};
-
-static const unsigned short actor_mask[16] = {
-    0x0180,0x03c0,0x07e0,0x0660,0x03c0,0x07e0,0x0ff0,0x1db8,
-    0x1998,0x0ff0,0x0660,0x0660,0x0ff0,0x0c30,0x1818,0x1818
-};
-static const unsigned short actor_light[16] = {
-    0x0000,0x0180,0x03c0,0x0240,0x0180,0x0240,0x0660,0x0810,
-    0x0810,0x0660,0x0240,0x0240,0x0660,0x0420,0x1008,0x1008
-};
-static const unsigned short npc_mask[16] = {
-    0x0180,0x03c0,0x07e0,0x07e0,0x03c0,0x07e0,0x0ff0,0x1ff8,
-    0x1ff8,0x0ff0,0x07e0,0x0ff0,0x1db8,0x1998,0x1818,0x1818
-};
-static const unsigned short item_mask[16] = {
-    0x0000,0x0180,0x03c0,0x07e0,0x0ff0,0x1ff8,0x1bd8,0x1998,
-    0x1bd8,0x1ff8,0x0ff0,0x07e0,0x03c0,0x0180,0x0000,0x0000
 };
 
 static const struct ps_story_action story_actions[] = {
@@ -341,22 +328,19 @@ static void reset_story(void *context)
     state->route_index = 0;
     state->route_active = 0;
     state->active_action = -1;
-    place_actor(scenes[SCENE_HOUSE].spawn_x, scenes[SCENE_HOUSE].spawn_y);
+    place_actor(scenes[SCENE_HOUSE].spawn.x,
+                scenes[SCENE_HOUSE].spawn.y);
 }
 
 static int begin_route(int destination_x, int destination_y)
 {
-    const struct scene_definition *scene = &scenes[story.scene];
-    struct ps_grid grid;
+    const struct ps_scene *scene = &scenes[story.scene];
     int result;
 
-    grid.width = MAP_WIDTH;
-    grid.height = MAP_HEIGHT;
-    grid.blocked = scene->blocked;
     story.route.cells = story.route_cells;
     story.route.capacity = ROUTE_CAPACITY;
     story.route.count = 0;
-    result = ps_grid_find_path(&grid,
+    result = ps_grid_find_path(&scene->grid,
                                body_tile_x(&story.actor),
                                body_tile_y(&story.actor),
                                destination_x, destination_y,
@@ -481,7 +465,7 @@ static int handle_story_action(const struct ps_story_action *action,
 
         case PS_STORY_ACTION_COLLECT:
         {
-            const struct scene_definition *scene = &scenes[state->scene];
+            const struct ps_scene *scene = &scenes[state->scene];
             int region = ps_region_find_facing(scene->regions,
                                                scene->region_count,
                                                &state->actor,
@@ -507,74 +491,83 @@ static int handle_story_action(const struct ps_story_action *action,
     }
 }
 
-static void draw_mask(int x, int y, const unsigned short *mask,
-                      unsigned int color)
+static const unsigned short *outdoor_tiles_for_palette(
+    const struct palette *p)
 {
-    int row;
+    if (p == &night_palette)
+        return story_outdoor_tiles_night;
+    if (p == &evening_palette)
+        return story_outdoor_tiles_evening;
+    return story_outdoor_tiles_day;
+}
 
-    use_color(color);
-    for (row = 0; row < 16; ++row)
-    {
-        int column;
-        for (column = 0; column < 16; ++column)
-        {
-            if (mask[row] & (1u << (15 - column)))
-                rb->lcd_drawpixel(x + column, y + row);
-        }
-    }
+static const unsigned short *outdoor_object_for_palette(
+    const struct palette *p, const unsigned short *day,
+    const unsigned short *evening, const unsigned short *night)
+{
+    if (p == &night_palette)
+        return night;
+    if (p == &evening_palette)
+        return evening;
+    return day;
 }
 
 static void draw_tile(int column, int row, int tile,
                       const struct palette *p)
 {
+    static const int variants[3] = { 0, 1, 3 };
+    const unsigned short *atlas;
+    int variant_index = ps_tile_variation(
+        column, row, scenes[story.scene].variation_seed, ARRAYLEN(variants));
+    int variant = variants[variant_index];
     int x = tile_x(column);
     int y = row * TILE_SIZE;
+    int source_y;
 
-    use_color((column + row) & 1 ? p->ground_alt : p->ground);
-    rb->lcd_fillrect(x, y, TILE_SIZE, TILE_SIZE);
-    if (tile == TILE_WALL)
+    if (story.scene == SCENE_HOUSE)
     {
-        use_color(p->dark);
-        rb->lcd_fillrect(x, y, 16, 16);
-        use_color(p->mid);
-        rb->lcd_hline(x + 1, x + 14, y + 7);
-        rb->lcd_vline(x + 7, y + 1, y + 6);
+        if (tile == TILE_WALL)
+        {
+            atlas = story_indoor_tiles;
+            source_y = 0;
+            rb->lcd_bitmap_part((const fb_data *)atlas,
+                                variant * 16, source_y,
+                                STORY_TILE_ATLAS_WIDTH,
+                                x, y, TILE_SIZE, TILE_SIZE);
+        }
+        else
+            rb->lcd_bitmap_part((const fb_data *)story_floor_tiles,
+                                ((column + row * 2) % 3) * 16, 0,
+                                STORY_FLOOR_ATLAS_WIDTH,
+                                x, y, TILE_SIZE, TILE_SIZE);
     }
-    else if (tile == TILE_RUG)
+    else
     {
-        use_color(p->accent);
-        rb->lcd_fillrect(x + 1, y + 1, 14, 14);
-        use_color(p->light);
-        rb->lcd_drawrect(x + 3, y + 3, 10, 10);
+        atlas = outdoor_tiles_for_palette(p);
+        source_y = tile == TILE_PATH || tile == TILE_DOOR ? 16 : 0;
+        rb->lcd_bitmap_part((const fb_data *)atlas,
+                            variant * 16, source_y,
+                            STORY_OUTDOOR_ATLAS_WIDTH,
+                            x, y, TILE_SIZE, TILE_SIZE);
     }
-    else if (tile == TILE_GRASS)
+
+    if (tile == TILE_WATER)
     {
-        use_color(p->mid);
-        rb->lcd_drawpixel(x + 3, y + 5);
-        rb->lcd_drawpixel(x + 12, y + 11);
-    }
-    else if (tile == TILE_PATH || tile == TILE_DOOR)
-    {
-        use_color(p->light);
-        rb->lcd_fillrect(x + 2, y, 12, 16);
-        use_color(p->mid);
-        rb->lcd_drawpixel(x + 5, y + 4);
-        rb->lcd_drawpixel(x + 11, y + 12);
-    }
-    else if (tile == TILE_WATER)
-    {
-        use_color(p->water);
-        rb->lcd_fillrect(x, y, 16, 16);
-        use_color(p->light);
-        rb->lcd_hline(x + 2, x + 8, y + 5);
-        rb->lcd_hline(x + 7, x + 14, y + 11);
+        const unsigned short *water = outdoor_object_for_palette(
+            p, story_water_day, story_water_evening, story_water_night);
+        rb->lcd_bitmap((const fb_data *)water, x, y, 16, 16);
     }
     else if (tile == TILE_FLOWER)
     {
-        use_color(p->light);
-        rb->lcd_fillrect(x + 7, y + 5, 3, 3);
-        use_color(p->accent);
-        rb->lcd_drawpixel(x + 8, y + 6);
+        const unsigned short *flower = outdoor_object_for_palette(
+            p, story_flower_day, story_flower_evening, story_flower_night);
+        rb->lcd_bitmap_transparent((const fb_data *)flower,
+                                   x, y, 16, 16);
+    }
+    else if (tile == TILE_DOOR)
+    {
+        rb->lcd_bitmap_transparent((const fb_data *)story_door,
+                                   x, y, 16, 16);
     }
 }
 
@@ -582,105 +575,94 @@ static void draw_tall(int x, int y, int id, const struct palette *p)
 {
     if (id == TILE_TREE)
     {
-        use_color(p->dark);
-        rb->lcd_fillrect(x + 6, y + 8, 4, 8);
-        use_color(p->mid);
-        rb->lcd_fillrect(x + 2, y + 2, 12, 9);
-        use_color(p->light);
-        rb->lcd_fillrect(x + 5, y, 6, 5);
+        const unsigned short *tree = outdoor_object_for_palette(
+            p, story_tree_day, story_tree_evening, story_tree_night);
+        rb->lcd_bitmap_transparent((const fb_data *)tree,
+                                   x, y - 16, 16, 32);
     }
     else if (id == TILE_BED)
     {
-        use_color(p->dark);
-        rb->lcd_fillrect(x + 1, y + 3, 14, 13);
-        use_color(p->light);
-        rb->lcd_fillrect(x + 3, y + 4, 10, 5);
-        use_color(p->accent);
-        rb->lcd_fillrect(x + 3, y + 10, 10, 4);
+        rb->lcd_bitmap_transparent((const fb_data *)story_bed,
+                                   x, y, 32, 32);
     }
     else if (id == TILE_TABLE)
     {
-        use_color(p->dark);
-        rb->lcd_fillrect(x + 2, y + 5, 12, 8);
-        use_color(p->mid);
-        rb->lcd_fillrect(x + 1, y + 3, 14, 5);
-        use_color(p->light);
-        rb->lcd_hline(x + 3, x + 12, y + 4);
+        rb->lcd_bitmap_transparent((const fb_data *)story_bookshelf,
+                                   x, y, 32, 32);
     }
     else if (id == TILE_BEACON)
     {
-        use_color(p->dark);
-        rb->lcd_fillrect(x + 5, y + 5, 7, 11);
-        use_color(p->accent);
-        rb->lcd_fillrect(x + 3, y + 1, 11, 7);
-        use_color(p->light);
-        rb->lcd_fillrect(x + 6, y + 2, 5, 4);
+        const unsigned short *beacon = outdoor_object_for_palette(
+            p, story_beacon_day, story_beacon_evening, story_beacon_night);
+        rb->lcd_bitmap_transparent((const fb_data *)beacon,
+                                   x, y, 16, 16);
     }
 }
 
-static void draw_actor(int x, int y, const struct palette *p)
+static void draw_actor(int x, int y)
 {
-    int bob = story.route_active && ((story.walk_distance / 6) & 1);
-    unsigned int coat = story.item_collected ? p->accent : p->mid;
+    struct ps_anim_frame frame;
 
-    draw_mask(x, y - bob, actor_mask, p->dark);
-    draw_mask(x, y - bob, actor_light, coat);
-    use_color(p->light);
-    if (story.facing == PS_GRID_LEFT)
-        rb->lcd_drawpixel(x + 5, y + 4 - bob);
-    else if (story.facing == PS_GRID_RIGHT)
-        rb->lcd_drawpixel(x + 10, y + 4 - bob);
-    else
-    {
-        rb->lcd_drawpixel(x + 6, y + 4 - bob);
-        rb->lcd_drawpixel(x + 9, y + 4 - bob);
-    }
+    if (!ps_anim_select(&actor_animation, story.facing,
+                        story.route_active, story.walk_distance, 4, &frame))
+        return;
+
+    rb->lcd_bitmap_transparent_part((const fb_data *)story_luma_walk,
+                                    frame.x, frame.y,
+                                    STORY_WALK_SHEET_WIDTH,
+                                    x, y,
+                                    frame.width, frame.height);
 }
 
-static void draw_npc(int x, int y, const struct palette *p, int id)
+static void draw_npc(int x, int y, int id)
 {
-    draw_mask(x, y, npc_mask, p->dark);
-    draw_mask(x, y, actor_light, id == 0 ? p->light : p->accent);
+    const unsigned short *sheet = id == 0 ? story_mira_walk : story_tovin_walk;
+    struct ps_anim_frame frame;
+
+    if (!ps_anim_select(&npc_animation, PS_GRID_DOWN, 1,
+                        frame_number / 18, 1, &frame))
+        return;
+
+    rb->lcd_bitmap_transparent_part((const fb_data *)sheet,
+                                    frame.x, frame.y,
+                                    STORY_WALK_SHEET_WIDTH,
+                                    x, y,
+                                    frame.width, frame.height);
 }
 
-static void draw_item(int x, int y, const struct palette *p)
+static void draw_item(int x, int y)
 {
     int bob = (frame_number / 8) & 1;
-    draw_mask(x, y - bob, item_mask, p->accent);
-    use_color(p->light);
-    rb->lcd_fillrect(x + 7, y + 5 - bob, 2, 5);
+
+    rb->lcd_bitmap_transparent((const fb_data *)story_key,
+                               x, y - bob, 16, 16);
 }
 
-static void add_drawable(struct drawable *drawables, int *count,
-                         int kind, int x, int y, int foot_y, int id)
+static void queue_drawable(struct ps_draw_list *list,
+                           int kind, int x, int y, int foot_y, int id)
 {
-    struct drawable value;
-    int index = *count;
+    struct ps_drawable value;
 
     value.kind = kind;
     value.x = x;
     value.y = y;
     value.foot_y = foot_y;
     value.id = id;
-    while (index > 0 && drawables[index - 1].foot_y > foot_y)
-    {
-        drawables[index] = drawables[index - 1];
-        index--;
-    }
-    drawables[index] = value;
-    (*count)++;
+    ps_draw_list_add(list, &value);
 }
 
 static void draw_world(const struct palette *p)
 {
-    const struct scene_definition *scene = &scenes[story.scene];
-    struct drawable drawables[32];
-    int drawable_count = 0;
+    const struct ps_scene *scene = &scenes[story.scene];
+    struct ps_drawable drawable_storage[32];
+    struct ps_draw_list drawables;
     int row;
     int column;
-    int actor_left = story.actor.x / PS_ONE + story.actor.width / 2 - 8;
-    int actor_top = story.actor.y / PS_ONE + story.actor.height - 16;
+    int actor_left = story.actor.x / PS_ONE + story.actor.width / 2 - 10;
+    int actor_top = story.actor.y / PS_ONE + story.actor.height - 20;
 
+    ps_draw_list_init(&drawables, drawable_storage,
+                      ARRAYLEN(drawable_storage));
     use_color(p->dark);
     rb->lcd_fillrect(0, 0, LCD_WIDTH, LCD_HEIGHT);
     for (row = 0; row < MAP_HEIGHT; ++row)
@@ -689,37 +671,49 @@ static void draw_world(const struct palette *p)
         {
             int tile = scene->tiles[row * MAP_WIDTH + column];
             draw_tile(column, row, tile, p);
-            if (tile == TILE_TREE || tile == TILE_BED ||
-                tile == TILE_TABLE || tile == TILE_BEACON)
-                add_drawable(drawables, &drawable_count, DRAW_TALL,
-                             tile_x(column), row * TILE_SIZE,
-                             row * TILE_SIZE + 15, tile);
+            if (tile == TILE_TREE || tile == TILE_BEACON)
+                queue_drawable(&drawables, DRAW_TALL,
+                               tile_x(column), row * TILE_SIZE,
+                               row * TILE_SIZE + 15, tile);
+            else if ((tile == TILE_BED || tile == TILE_TABLE) &&
+                     (column == 0 || scene->tiles[row * MAP_WIDTH +
+                                                  column - 1] != tile) &&
+                     (row == 0 || scene->tiles[(row - 1) * MAP_WIDTH +
+                                               column] != tile))
+                queue_drawable(&drawables, DRAW_TALL,
+                               tile_x(column), row * TILE_SIZE,
+                               row * TILE_SIZE + 31, tile);
         }
     }
     if (story.scene == SCENE_HOUSE)
+        rb->lcd_bitmap_transparent((const fb_data *)story_rug,
+                                   tile_x(5), 3 * TILE_SIZE, 48, 48);
+    if (story.scene == SCENE_HOUSE)
     {
-        add_drawable(drawables, &drawable_count, DRAW_NPC,
-                     tile_x(2), 4 * TILE_SIZE, 5 * TILE_SIZE - 1, 0);
+        queue_drawable(&drawables, DRAW_NPC,
+                       tile_x(2) - 2, 4 * TILE_SIZE - 4,
+                       5 * TILE_SIZE - 1, 0);
         if (!story.item_collected)
-            add_drawable(drawables, &drawable_count, DRAW_ITEM,
-                         tile_x(9), 4 * TILE_SIZE, 5 * TILE_SIZE - 1, ITEM_KEY);
+            queue_drawable(&drawables, DRAW_ITEM,
+                           tile_x(9), 4 * TILE_SIZE,
+                           5 * TILE_SIZE - 1, ITEM_KEY);
     }
     else
-        add_drawable(drawables, &drawable_count, DRAW_NPC,
-                     tile_x(3), 5 * TILE_SIZE, 6 * TILE_SIZE - 1, 1);
-    add_drawable(drawables, &drawable_count, DRAW_ACTOR,
-                 actor_left, actor_top,
-                 story.actor.y / PS_ONE + story.actor.height, 0);
+        queue_drawable(&drawables, DRAW_NPC,
+                       tile_x(3) - 2, 5 * TILE_SIZE - 4,
+                       6 * TILE_SIZE - 1, 1);
+    queue_drawable(&drawables, DRAW_ACTOR, actor_left, actor_top,
+                   story.actor.y / PS_ONE + story.actor.height, 0);
 
-    for (row = 0; row < drawable_count; ++row)
+    for (row = 0; row < drawables.count; ++row)
     {
-        const struct drawable *d = &drawables[row];
+        const struct ps_drawable *d = ps_draw_list_get(&drawables, row);
         if (d->kind == DRAW_ACTOR)
-            draw_actor(d->x, d->y, p);
+            draw_actor(d->x, d->y);
         else if (d->kind == DRAW_NPC)
-            draw_npc(d->x, d->y, p, d->id);
+            draw_npc(d->x, d->y, d->id);
         else if (d->kind == DRAW_ITEM)
-            draw_item(d->x, d->y, p);
+            draw_item(d->x, d->y);
         else
             draw_tall(d->x, d->y, d->id, p);
     }
@@ -828,6 +822,9 @@ enum plugin_status plugin_start(const void *parameter)
     rb->lcd_setfont(FONT_SYSFIXED);
     backlight_ignore_timeout();
     load_simulator_scenario();
+    if (!ps_scene_valid(&scenes[SCENE_HOUSE]) ||
+        !ps_scene_valid(&scenes[SCENE_OUTDOOR]))
+        return PLUGIN_ERROR;
     reset_story(&story);
     ps_story_init(&director, story_actions, ARRAYLEN(story_actions), 1);
 

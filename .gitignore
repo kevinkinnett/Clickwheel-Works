@@ -1,5 +1,7 @@
 artifacts/
 backups/
 build/
+__pycache__/
+*.py[cod]
 rockbox/build-*/
 rockbox/

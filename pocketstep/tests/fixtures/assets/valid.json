@@ -1,0 +1,50 @@
+{
+  "format": 1,
+  "output": "generated.h",
+  "guard": "FIXTURE_ASSETS_H",
+  "transparent_color": [255, 0, 255],
+  "constants": {
+    "FIXTURE_HEIGHT": 2,
+    "FIXTURE_WIDTH": 4
+  },
+  "provenance": [
+    {
+      "creator": "Fixture Author",
+      "source": "local test fixture",
+      "license": "CC0"
+    }
+  ],
+  "sources": {
+    "pixels": { "path": "source.png" },
+    "strip": { "path": "strip.png" }
+  },
+  "assets": [
+    {
+      "name": "cropped",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "pixels" },
+        { "op": "crop", "rect": [0, 0, 2, 2] },
+        { "op": "color_key", "color": [255, 255, 255], "tolerance": 0 },
+        { "op": "resize", "size": [4, 4] }
+      ]
+    },
+    {
+      "name": "fixture_sheet",
+      "operations": [
+        {
+          "op": "assemble",
+          "size": [4, 2],
+          "layers": [
+            { "asset": "cropped", "crop": [0, 0, 2, 2], "at": [0, 0] },
+            { "source": "strip", "flip": "horizontal", "at": [2, 0] }
+          ]
+        }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_night", "tint": { "multiply": [0.5, 0.5, 0.75], "add": [0, 0, 8] } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,236 @@
+{
+  "format": 1,
+  "output": "../../src/storyclock_assets.h",
+  "guard": "STORYCLOCK_ASSETS_H",
+  "transparent_color": [255, 0, 255],
+  "constants": {
+    "STORY_FLOOR_ATLAS_WIDTH": 48,
+    "STORY_OUTDOOR_ATLAS_HEIGHT": 32,
+    "STORY_OUTDOOR_ATLAS_WIDTH": 64,
+    "STORY_TILE_ATLAS_HEIGHT": 80,
+    "STORY_TILE_ATLAS_WIDTH": 64,
+    "STORY_WALK_FRAME_SIZE": 20,
+    "STORY_WALK_SHEET_HEIGHT": 80,
+    "STORY_WALK_SHEET_WIDTH": 80
+  },
+  "provenance": [
+    {
+      "creator": "Kevin Kinnett and OpenAI with RetroDiffusion",
+      "source": "https://retrodiffusion.ai/",
+      "license": "Project-owned generated artwork"
+    },
+    {
+      "creator": "Kenney",
+      "source": "https://kenney.nl/assets/tiny-town",
+      "license": "CC0 1.0"
+    }
+  ],
+  "sources": {
+    "indoor": { "path": "indoor-tileset.png" },
+    "floor": { "path": "floor-tile.png" },
+    "water": { "path": "water-tile.png" },
+    "rug": { "path": "rug.png" },
+    "luma": { "path": "luma-walk.png" },
+    "mira": { "path": "mira-walk.png" },
+    "tovin": { "path": "tovin-walk.png" },
+    "objects": { "path": "objects-sheet.png" },
+    "grass": { "path": "third-party/kenney-tiny-town/tile_0000.png" },
+    "grass_detail": { "path": "third-party/kenney-tiny-town/tile_0001.png" },
+    "flower": { "path": "third-party/kenney-tiny-town/tile_0002.png" },
+    "tree_top": { "path": "third-party/kenney-tiny-town/tile_0004.png" },
+    "tree_bottom": { "path": "third-party/kenney-tiny-town/tile_0016.png" },
+    "path": { "path": "third-party/kenney-tiny-town/tile_0043.png" }
+  },
+  "assets": [
+    {
+      "name": "story_indoor_tiles",
+      "operations": [{ "op": "source", "source": "indoor" }]
+    },
+    {
+      "name": "floor_base",
+      "emit": false,
+      "operations": [{ "op": "source", "source": "floor" }]
+    },
+    {
+      "name": "floor_horizontal",
+      "emit": false,
+      "operations": [
+        { "op": "asset", "asset": "floor_base" },
+        { "op": "flip", "axis": "horizontal" }
+      ]
+    },
+    {
+      "name": "floor_vertical",
+      "emit": false,
+      "operations": [
+        { "op": "asset", "asset": "floor_base" },
+        { "op": "flip", "axis": "vertical" }
+      ]
+    },
+    {
+      "name": "story_floor_tiles",
+      "operations": [{
+        "op": "assemble",
+        "size": [48, 16],
+        "layers": [
+          { "asset": "floor_base", "at": [0, 0] },
+          { "asset": "floor_horizontal", "at": [16, 0] },
+          { "asset": "floor_vertical", "at": [32, 0] }
+        ]
+      }]
+    },
+    {
+      "name": "grass_detail_horizontal",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "grass_detail" },
+        { "op": "flip", "axis": "horizontal" }
+      ]
+    },
+    {
+      "name": "grass_detail_vertical",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "grass_detail" },
+        { "op": "flip", "axis": "vertical" }
+      ]
+    },
+    {
+      "name": "path_horizontal",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "path" },
+        { "op": "flip", "axis": "horizontal" }
+      ]
+    },
+    {
+      "name": "story_outdoor_tiles",
+      "operations": [{
+        "op": "assemble",
+        "size": [64, 32],
+        "layers": [
+          { "source": "grass", "at": [0, 0] },
+          { "source": "grass_detail", "at": [16, 0] },
+          { "asset": "grass_detail_horizontal", "at": [32, 0] },
+          { "asset": "grass_detail_vertical", "at": [48, 0] },
+          { "source": "path", "at": [0, 16] },
+          { "asset": "path_horizontal", "at": [16, 16] },
+          { "source": "path", "at": [32, 16] },
+          { "asset": "path_horizontal", "at": [48, 16] }
+        ]
+      }],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_luma_walk",
+      "operations": [
+        { "op": "source", "source": "luma" },
+        { "op": "resize", "size": [80, 80] }
+      ]
+    },
+    {
+      "name": "story_mira_walk",
+      "operations": [
+        { "op": "source", "source": "mira" },
+        { "op": "resize", "size": [80, 80] }
+      ]
+    },
+    {
+      "name": "story_tovin_walk",
+      "operations": [
+        { "op": "source", "source": "tovin" },
+        { "op": "resize", "size": [80, 80] }
+      ]
+    },
+    {
+      "name": "story_rug",
+      "operations": [{ "op": "source", "source": "rug" }]
+    },
+    {
+      "name": "story_water",
+      "operations": [{ "op": "source", "source": "water" }],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_key",
+      "operations": [
+        { "op": "source", "source": "objects" },
+        { "op": "crop", "rect": [160, 0, 32, 32] },
+        { "op": "color_key", "color": [255, 255, 255], "tolerance": 10 },
+        { "op": "resize", "size": [16, 16] }
+      ]
+    },
+    {
+      "name": "story_beacon",
+      "operations": [
+        { "op": "source", "source": "objects" },
+        { "op": "crop", "rect": [128, 0, 32, 32] },
+        { "op": "color_key", "color": [255, 255, 255], "tolerance": 10 },
+        { "op": "resize", "size": [16, 16] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_bed",
+      "operations": [
+        { "op": "source", "source": "objects" },
+        { "op": "crop", "rect": [192, 0, 32, 32] },
+        { "op": "color_key", "color": [255, 255, 255], "tolerance": 10 }
+      ]
+    },
+    {
+      "name": "story_bookshelf",
+      "operations": [
+        { "op": "source", "source": "objects" },
+        { "op": "crop", "rect": [160, 32, 32, 32] },
+        { "op": "color_key", "color": [255, 255, 255], "tolerance": 10 }
+      ]
+    },
+    {
+      "name": "story_tree",
+      "operations": [{
+        "op": "assemble",
+        "size": [16, 32],
+        "layers": [
+          { "source": "tree_top", "at": [0, 0] },
+          { "source": "tree_bottom", "at": [0, 16] }
+        ]
+      }],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_door",
+      "operations": [
+        { "op": "source", "source": "objects" },
+        { "op": "crop", "rect": [224, 224, 32, 32] },
+        { "op": "color_key", "color": [255, 255, 255], "tolerance": 10 },
+        { "op": "resize", "size": [16, 16] }
+      ]
+    },
+    {
+      "name": "story_flower",
+      "operations": [{ "op": "source", "source": "flower" }],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "output": "generated.h",
+  "guard": "FIXTURE_ASSETS_H",
+  "sources": { "pixels": { "path": "source.png" } },
+  "assets": [
+    { "name": "same", "operations": [{ "op": "source", "source": "pixels" }] },
+    { "name": "same", "operations": [{ "op": "source", "source": "pixels" }] }
+  ]
+}
