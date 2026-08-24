@@ -5,10 +5,10 @@ on:
   pull_request:
 
 jobs:
-  microgame:
+  pocketstep:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cmake -S . -B build
-      - run: cmake --build build
-      - run: ctest --test-dir build --output-on-failure
+      - run: cmake -S pocketstep -B build/pocketstep
+      - run: cmake --build build/pocketstep
+      - run: ctest --test-dir build/pocketstep --output-on-failure

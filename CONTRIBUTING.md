@@ -4,7 +4,7 @@ Build the host tests before touching the Rockbox simulator. They take about a
 second and catch collision regressions without booting firmware.
 
 ```powershell
-.\scripts\Test-Microgame.ps1
+.\scripts\Test-PocketStep.ps1
 ```
 
 Then build and capture Mushroom Clock.
@@ -14,7 +14,7 @@ Then build and capture Mushroom Clock.
 .\scripts\Capture-MushroomClock.ps1
 ```
 
-Keep `src/microgame.h` independent of Rockbox. It must compile as C99 without
+Keep `pocketstep/pocketstep.h` independent of Rockbox. It must compile as C99 without
 allocation, floating point, operating-system headers, or global state. Put
 device APIs, clock behavior, drawing, and level selection in the application.
 

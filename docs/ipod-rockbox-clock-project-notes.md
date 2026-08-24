@@ -321,18 +321,18 @@ Positions are stored in sixteenth-pixel units. No floating-point math is
 needed. Adding 16 to a position moves one pixel. Adding 8 moves half a pixel.
 Gravity can add 3 or 4 fixed-point units per frame.
 
-The runner's basic integration now goes through Microgame:
+The runner's basic integration now goes through PocketStep:
 
 ```c
 runner.x = level.runner_x;
 runner.y = level.runner_y;
-runner.vx = level.runner_direction * MG_ONE;
+runner.vx = level.runner_direction * PS_ONE;
 runner.vy = level.runner_vy;
 runner.width = 13;
 runner.height = 16;
 
-mg_apply_gravity(&runner, 4, 72);
-movement = mg_move(&collision_world, &runner);
+ps_apply_gravity(&runner, 4, 72);
+movement = ps_move(&collision_world, &runner);
 ```
 
 At 20 frames per second, that is a one-pixel horizontal step per frame with
@@ -348,7 +348,7 @@ if (movement.hit_ceiling &&
     hit_coin_block();
 ```
 
-Microgame is a header-only C99 library with no Rockbox dependency, allocator,
+PocketStep is a header-only C99 library with no Rockbox dependency, allocator,
 or floating point. Host tests compile it with an ordinary C compiler. The same
 header then builds into the Rockbox plugin.
 
@@ -475,7 +475,7 @@ mushroom.
 
 That first collision code was still scattered through the animation update.
 Adding randomized blocks and routes made its assumptions fight each other. We
-extracted the rules into `src/microgame.h`, then added command-line tests for
+extracted the rules into `pocketstep/pocketstep.h`, then added command-line tests for
 floor landing, question-block underside hits, pipe walls, and stomps.
 
 ### The enemy feedback loop
@@ -487,7 +487,7 @@ contact leaves the enemy alive and hurts or kills the runner. Star contact is
 the separate exception.
 
 The regression test is small enough to state plainly. Two actors can overlap
-from the side and `mg_crossed_top` must return false. If the runner's previous
+from the side and `ps_crossed_top` must return false. If the runner's previous
 feet were above the enemy and the new feet crossed its top, it returns true.
 
 ### The pipe trap

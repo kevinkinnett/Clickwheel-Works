@@ -11,8 +11,8 @@
 #include "lib/pluginlib_actions.h"
 #include "lib/pluginlib_exit.h"
 
-#define MICROGAME_IMPLEMENTATION
-#include "microgame.h"
+#define POCKETSTEP_IMPLEMENTATION
+#include "pocketstep.h"
 
 #if !defined(HAVE_LCD_COLOR)
 #error Mushroom Clock requires a color display
@@ -161,7 +161,7 @@ struct level_state
 };
 
 static struct level_state level;
-static struct mg_world collision_world;
+static struct ps_world collision_world;
 
 static fb_data color_of(struct rgb c)
 {
@@ -754,17 +754,17 @@ static void rebuild_collision_world(void)
 {
     int i;
 
-    mg_world_clear(&collision_world);
-    mg_world_add_solid(&collision_world, SOLID_GROUND,
+    ps_world_clear(&collision_world);
+    ps_world_add_solid(&collision_world, SOLID_GROUND,
                        -64, GROUND_Y, LCD_WIDTH + 128,
                        LCD_HEIGHT - GROUND_Y);
     for (i = 0; i < level.first_count; ++i)
-        mg_world_add_solid(&collision_world, SOLID_FIRST_BASE + i,
+        ps_world_add_solid(&collision_world, SOLID_FIRST_BASE + i,
                            level.first_x + i * 16, level.first_y, 16, 16);
     for (i = 0; i < level.second_count; ++i)
-        mg_world_add_solid(&collision_world, SOLID_SECOND_BASE + i,
+        ps_world_add_solid(&collision_world, SOLID_SECOND_BASE + i,
                            level.second_x + i * 16, level.second_y, 16, 16);
-    mg_world_add_solid(&collision_world, SOLID_PIPE,
+    ps_world_add_solid(&collision_world, SOLID_PIPE,
                        level.pipe_x, level.pipe_y,
                        30, GROUND_Y - level.pipe_y);
 }
@@ -993,8 +993,8 @@ static void update_enemy_death(void)
 
 static void update_mushroom(void)
 {
-    struct mg_body powerup;
-    struct mg_move_result movement;
+    struct ps_body powerup;
+    struct ps_move_result movement;
 
     if (level.mushroom_mode == 0)
         return;
@@ -1019,8 +1019,8 @@ static void update_mushroom(void)
     powerup.vy = level.mushroom_vy;
     powerup.width = 13;
     powerup.height = 12;
-    mg_apply_gravity(&powerup, 3, 48);
-    movement = mg_move(&collision_world, &powerup);
+    ps_apply_gravity(&powerup, 3, 48);
+    movement = ps_move(&collision_world, &powerup);
 
     if (movement.hit_floor && level.powerup_kind == POWER_STAR)
         powerup.vy = -44;
@@ -1034,10 +1034,10 @@ static void update_mushroom(void)
 
 static void update_runner(void)
 {
-    struct mg_body runner;
-    struct mg_body previous_runner;
-    struct mg_body enemy;
-    struct mg_move_result movement;
+    struct ps_body runner;
+    struct ps_body previous_runner;
+    struct ps_body enemy;
+    struct ps_move_result movement;
     int runner_x = level.runner_x / 16;
     int enemy_x = level.enemy_x / 16;
     int new_x;
@@ -1102,18 +1102,18 @@ static void update_runner(void)
     }
 
     runner.x = level.runner_x;
-    runner.y = level.runner_y - (level.runner_big ? 8 * MG_ONE : 0);
-    runner.vx = level.runner_direction * MG_ONE;
+    runner.y = level.runner_y - (level.runner_big ? 8 * PS_ONE : 0);
+    runner.vx = level.runner_direction * PS_ONE;
     runner.vy = level.runner_vy;
     runner.width = 13;
     runner.height = level.runner_big ? 24 : 16;
-    mg_apply_gravity(&runner, 4, 72);
+    ps_apply_gravity(&runner, 4, 72);
     impact_vy = runner.vy;
     previous_runner = runner;
-    movement = mg_move(&collision_world, &runner);
+    movement = ps_move(&collision_world, &runner);
 
     level.runner_x = runner.x;
-    level.runner_y = runner.y + (level.runner_big ? 8 * MG_ONE : 0);
+    level.runner_y = runner.y + (level.runner_big ? 8 * PS_ONE : 0);
     level.runner_vy = runner.vy;
     level.runner_on_surface = movement.hit_floor != 0;
 
@@ -1146,8 +1146,8 @@ static void update_runner(void)
         level.runner_on_surface = false;
     }
 
-    new_x = level.runner_x / MG_ONE;
-    new_y = level.runner_y / MG_ONE;
+    new_x = level.runner_x / PS_ONE;
+    new_y = level.runner_y / PS_ONE;
     new_bottom = new_y + 16;
 
     if (level.mushroom_mode != 0 &&
@@ -1172,25 +1172,25 @@ static void update_runner(void)
     {
         int enemy_height = level.enemy_kind == ENEMY_TURTLE ? 17 : 13;
         int enemy_top = GROUND_Y - enemy_height;
-        runner.y = level.runner_y - (level.runner_big ? 8 * MG_ONE : 0);
+        runner.y = level.runner_y - (level.runner_big ? 8 * PS_ONE : 0);
         runner.vy = impact_vy;
         runner.height = level.runner_big ? 24 : 16;
         enemy.x = level.enemy_x;
-        enemy.y = enemy_top * MG_ONE;
+        enemy.y = enemy_top * PS_ONE;
         enemy.vx = 0;
         enemy.vy = 0;
         enemy.width = 14;
         enemy.height = enemy_height;
 
-        if (mg_overlap(&runner, &enemy))
+        if (ps_overlap(&runner, &enemy))
         {
             if (level.star_frames > 0)
                 defeat_enemy(ENEMY_DEATH_STAR);
-            else if (mg_crossed_top(&previous_runner, &runner,
+            else if (ps_crossed_top(&previous_runner, &runner,
                                     &enemy, 2))
             {
                 defeat_enemy(ENEMY_DEATH_STOMP);
-                level.runner_y = (enemy_top - 16) * MG_ONE;
+                level.runner_y = (enemy_top - 16) * PS_ONE;
                 level.runner_vy = -43;
                 level.runner_on_surface = false;
             }

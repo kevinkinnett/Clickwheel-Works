@@ -15,8 +15,8 @@ for source_name in chronolith mushroomclock; do
     cp "/project/src/$source_name.c" "$rockbox_src/apps/plugins/$source_name.c"
     sed -i 's/\r$//' "$rockbox_src/apps/plugins/$source_name.c"
 done
-cp /project/src/microgame.h "$rockbox_src/apps/plugins/microgame.h"
-sed -i 's/\r$//' "$rockbox_src/apps/plugins/microgame.h"
+cp /project/pocketstep/pocketstep.h "$rockbox_src/apps/plugins/pocketstep.h"
+sed -i 's/\r$//' "$rockbox_src/apps/plugins/pocketstep.h"
 
 if ! grep -qxF 'chronolith.c' "$rockbox_src/apps/plugins/SOURCES"; then
     sed -i '/^chessclock\.c$/a chronolith.c' "$rockbox_src/apps/plugins/SOURCES"

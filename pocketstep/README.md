@@ -1,13 +1,13 @@
-# Microgame
+# PocketStep
 
-Microgame is a header-only C99 motion and collision library for tiny games. It
+PocketStep is a header-only C99 motion and collision library for tiny games. It
 started inside Mushroom Clock after side impacts were repeatedly mistaken for
 stomps. The library now owns that decision instead of leaving it to animation
 code.
 
 It has no allocator, floating point, file I/O, window system, or device API.
 The default world stores 16 solid rectangles. Positions and velocities use
-four fractional bits, so one pixel equals `MG_ONE`.
+four fractional bits, so one pixel equals `PS_ONE`.
 
 ## What it handles
 
@@ -18,40 +18,51 @@ four fractional bits, so one pixel equals `MG_ONE`.
 - Actor overlap tests.
 - Strict top crossing for stomps and similar interactions.
 
-Microgame does not draw sprites, read controls, load maps, or decide what an
+PocketStep does not draw sprites, read controls, load maps, or decide what an
 enemy should do. The application owns those choices. This keeps the same
 physics usable in Rockbox, a command-line test, or another embedded target.
+
+PocketStep currently powers Mushroom Clock in
+[Clickwheel Works](https://github.com/kevinkinnett/Clickwheel-Works).
+
+## Build and test
+
+```sh
+cmake -S . -B build
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
 
 ## Minimal use
 
 Define the implementation once.
 
 ```c
-#define MICROGAME_IMPLEMENTATION
-#include "microgame.h"
+#define POCKETSTEP_IMPLEMENTATION
+#include "pocketstep.h"
 ```
 
 Create a world and add whole-pixel solids.
 
 ```c
-struct mg_world world;
-struct mg_body player = {
-    8 * MG_ONE, 32 * MG_ONE,
-    MG_ONE, 0,
+struct ps_world world;
+struct ps_body player = {
+    8 * PS_ONE, 32 * PS_ONE,
+    PS_ONE, 0,
     12, 16
 };
 
-mg_world_clear(&world);
-mg_world_add_solid(&world, 1, 0, 100, 220, 32);
+ps_world_clear(&world);
+ps_world_add_solid(&world, 1, 0, 100, 220, 32);
 ```
 
 Advance one fixed update.
 
 ```c
-struct mg_move_result movement;
+struct ps_move_result movement;
 
-mg_apply_gravity(&player, 4, 72);
-movement = mg_move(&world, &player);
+ps_apply_gravity(&player, 4, 72);
+movement = ps_move(&world, &player);
 if (movement.hit_floor)
     player.vy = 0;
 ```
@@ -66,8 +77,8 @@ if (movement.hit_ceiling && movement.vertical_id == QUESTION_BLOCK_ID)
 For an enemy contact, test overlap and then classify the approach.
 
 ```c
-if (mg_overlap(&player, &enemy)) {
-    if (mg_crossed_top(&previous_player, &player, &enemy, 2))
+if (ps_overlap(&player, &enemy)) {
+    if (ps_crossed_top(&previous_player, &player, &enemy, 2))
         stomp_enemy();
     else
         hurt_player();
@@ -80,10 +91,10 @@ have been above that edge.
 
 ## Limits
 
-`MG_MAX_SOLIDS` defaults to 16 and can be defined before including the header.
+`PS_MAX_SOLIDS` defaults to 16 and can be defined before including the header.
 The collision solver assumes each update moves a body across no more than one
 relevant solid on each axis. That matches a fixed-rate platform game on a
 220x176 display. Fast projectiles should use smaller steps or a separate ray
 test.
 
-Microgame is MIT-licensed. The Rockbox demo remains GPL-2.0-or-later.
+PocketStep uses the MIT License.

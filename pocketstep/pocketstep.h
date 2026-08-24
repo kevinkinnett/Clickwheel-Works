@@ -1,26 +1,26 @@
 /*
- * Microgame
+ * PocketStep
  * Fixed-point motion and collision for small C games.
  *
- * Copyright (C) 2026 Kevin and OpenAI
+ * Copyright (C) 2026 Kevin Kinnett
  * SPDX-License-Identifier: MIT
  *
- * Define MICROGAME_IMPLEMENTATION in one translation unit before including
+ * Define POCKETSTEP_IMPLEMENTATION in one translation unit before including
  * this file. Positions and velocities use four fractional bits. Collider
  * coordinates and body sizes use whole pixels.
  */
 
-#ifndef MICROGAME_H
-#define MICROGAME_H
+#ifndef POCKETSTEP_H
+#define POCKETSTEP_H
 
-#define MG_SHIFT 4
-#define MG_ONE (1 << MG_SHIFT)
+#define PS_SHIFT 4
+#define PS_ONE (1 << PS_SHIFT)
 
-#ifndef MG_MAX_SOLIDS
-#define MG_MAX_SOLIDS 16
+#ifndef PS_MAX_SOLIDS
+#define PS_MAX_SOLIDS 16
 #endif
 
-struct mg_rect
+struct ps_rect
 {
     int x;
     int y;
@@ -28,19 +28,19 @@ struct mg_rect
     int height;
 };
 
-struct mg_solid
+struct ps_solid
 {
-    struct mg_rect bounds;
+    struct ps_rect bounds;
     int id;
 };
 
-struct mg_world
+struct ps_world
 {
-    struct mg_solid solids[MG_MAX_SOLIDS];
+    struct ps_solid solids[PS_MAX_SOLIDS];
     int solid_count;
 };
 
-struct mg_body
+struct ps_body
 {
     int x;
     int y;
@@ -50,7 +50,7 @@ struct mg_body
     int height;
 };
 
-struct mg_move_result
+struct ps_move_result
 {
     int previous_x;
     int previous_y;
@@ -62,41 +62,41 @@ struct mg_move_result
     int vertical_id;
 };
 
-void mg_world_clear(struct mg_world *world);
-int mg_world_add_solid(struct mg_world *world, int id,
+void ps_world_clear(struct ps_world *world);
+int ps_world_add_solid(struct ps_world *world, int id,
                        int x, int y, int width, int height);
-void mg_apply_gravity(struct mg_body *body, int acceleration,
+void ps_apply_gravity(struct ps_body *body, int acceleration,
                       int terminal_velocity);
-struct mg_move_result mg_move(struct mg_world *world,
-                              struct mg_body *body);
-int mg_overlap(const struct mg_body *a, const struct mg_body *b);
-int mg_crossed_top(const struct mg_body *previous,
-                   const struct mg_body *current,
-                   const struct mg_body *target,
+struct ps_move_result ps_move(struct ps_world *world,
+                              struct ps_body *body);
+int ps_overlap(const struct ps_body *a, const struct ps_body *b);
+int ps_crossed_top(const struct ps_body *previous,
+                   const struct ps_body *current,
+                   const struct ps_body *target,
                    int tolerance_pixels);
 
 #endif
 
-#ifdef MICROGAME_IMPLEMENTATION
-#ifndef MICROGAME_IMPLEMENTATION_ONCE
-#define MICROGAME_IMPLEMENTATION_ONCE
+#ifdef POCKETSTEP_IMPLEMENTATION
+#ifndef POCKETSTEP_IMPLEMENTATION_ONCE
+#define POCKETSTEP_IMPLEMENTATION_ONCE
 
-static int mg_ranges_overlap(int a0, int a1, int b0, int b1)
+static int ps_ranges_overlap(int a0, int a1, int b0, int b1)
 {
     return a0 < b1 && a1 > b0;
 }
 
-void mg_world_clear(struct mg_world *world)
+void ps_world_clear(struct ps_world *world)
 {
     world->solid_count = 0;
 }
 
-int mg_world_add_solid(struct mg_world *world, int id,
+int ps_world_add_solid(struct ps_world *world, int id,
                        int x, int y, int width, int height)
 {
-    struct mg_solid *solid;
+    struct ps_solid *solid;
 
-    if (world->solid_count >= MG_MAX_SOLIDS || width <= 0 || height <= 0)
+    if (world->solid_count >= PS_MAX_SOLIDS || width <= 0 || height <= 0)
         return 0;
 
     solid = &world->solids[world->solid_count++];
@@ -108,7 +108,7 @@ int mg_world_add_solid(struct mg_world *world, int id,
     return 1;
 }
 
-void mg_apply_gravity(struct mg_body *body, int acceleration,
+void ps_apply_gravity(struct ps_body *body, int acceleration,
                       int terminal_velocity)
 {
     body->vy += acceleration;
@@ -116,10 +116,10 @@ void mg_apply_gravity(struct mg_body *body, int acceleration,
         body->vy = terminal_velocity;
 }
 
-struct mg_move_result mg_move(struct mg_world *world,
-                              struct mg_body *body)
+struct ps_move_result ps_move(struct ps_world *world,
+                              struct ps_body *body)
 {
-    struct mg_move_result result;
+    struct ps_move_result result;
     int i;
     int candidate;
     int proposed;
@@ -136,22 +136,22 @@ struct mg_move_result mg_move(struct mg_world *world,
     candidate = body->x + body->vx;
     for (i = 0; i < world->solid_count; ++i)
     {
-        const struct mg_solid *solid = &world->solids[i];
-        int left = solid->bounds.x * MG_ONE;
-        int right = (solid->bounds.x + solid->bounds.width) * MG_ONE;
-        int top = solid->bounds.y * MG_ONE;
-        int bottom = (solid->bounds.y + solid->bounds.height) * MG_ONE;
+        const struct ps_solid *solid = &world->solids[i];
+        int left = solid->bounds.x * PS_ONE;
+        int right = (solid->bounds.x + solid->bounds.width) * PS_ONE;
+        int top = solid->bounds.y * PS_ONE;
+        int bottom = (solid->bounds.y + solid->bounds.height) * PS_ONE;
         int body_top = body->y;
-        int body_bottom = body->y + body->height * MG_ONE;
+        int body_bottom = body->y + body->height * PS_ONE;
 
-        if (!mg_ranges_overlap(body_top, body_bottom, top, bottom))
+        if (!ps_ranges_overlap(body_top, body_bottom, top, bottom))
             continue;
 
         if (body->vx > 0 &&
-            body->x + body->width * MG_ONE <= left &&
-            candidate + body->width * MG_ONE > left)
+            body->x + body->width * PS_ONE <= left &&
+            candidate + body->width * PS_ONE > left)
         {
-            candidate = left - body->width * MG_ONE;
+            candidate = left - body->width * PS_ONE;
             result.hit_right = 1;
             result.horizontal_id = solid->id;
         }
@@ -168,24 +168,24 @@ struct mg_move_result mg_move(struct mg_world *world,
     proposed = candidate;
     for (i = 0; i < world->solid_count; ++i)
     {
-        const struct mg_solid *solid = &world->solids[i];
-        int left = solid->bounds.x * MG_ONE;
-        int right = (solid->bounds.x + solid->bounds.width) * MG_ONE;
-        int top = solid->bounds.y * MG_ONE;
-        int bottom = (solid->bounds.y + solid->bounds.height) * MG_ONE;
+        const struct ps_solid *solid = &world->solids[i];
+        int left = solid->bounds.x * PS_ONE;
+        int right = (solid->bounds.x + solid->bounds.width) * PS_ONE;
+        int top = solid->bounds.y * PS_ONE;
+        int bottom = (solid->bounds.y + solid->bounds.height) * PS_ONE;
         int body_left = body->x;
-        int body_right = body->x + body->width * MG_ONE;
-        int body_center = body_left + body->width * MG_ONE / 2;
+        int body_right = body->x + body->width * PS_ONE;
+        int body_center = body_left + body->width * PS_ONE / 2;
         int resolved;
 
-        if (!mg_ranges_overlap(body_left, body_right, left, right))
+        if (!ps_ranges_overlap(body_left, body_right, left, right))
             continue;
 
         if (body->vy > 0 &&
-            body->y + body->height * MG_ONE <= top &&
-            proposed + body->height * MG_ONE > top)
+            body->y + body->height * PS_ONE <= top &&
+            proposed + body->height * PS_ONE > top)
         {
-            resolved = top - body->height * MG_ONE;
+            resolved = top - body->height * PS_ONE;
             if (!result.hit_floor || resolved < candidate)
             {
                 candidate = resolved;
@@ -219,31 +219,31 @@ struct mg_move_result mg_move(struct mg_world *world,
     return result;
 }
 
-int mg_overlap(const struct mg_body *a, const struct mg_body *b)
+int ps_overlap(const struct ps_body *a, const struct ps_body *b)
 {
-    return mg_ranges_overlap(a->x, a->x + a->width * MG_ONE,
-                             b->x, b->x + b->width * MG_ONE) &&
-           mg_ranges_overlap(a->y, a->y + a->height * MG_ONE,
-                             b->y, b->y + b->height * MG_ONE);
+    return ps_ranges_overlap(a->x, a->x + a->width * PS_ONE,
+                             b->x, b->x + b->width * PS_ONE) &&
+           ps_ranges_overlap(a->y, a->y + a->height * PS_ONE,
+                             b->y, b->y + b->height * PS_ONE);
 }
 
-int mg_crossed_top(const struct mg_body *previous,
-                   const struct mg_body *current,
-                   const struct mg_body *target,
+int ps_crossed_top(const struct ps_body *previous,
+                   const struct ps_body *current,
+                   const struct ps_body *target,
                    int tolerance_pixels)
 {
-    int previous_bottom = previous->y + previous->height * MG_ONE;
-    int current_bottom = current->y + current->height * MG_ONE;
+    int previous_bottom = previous->y + previous->height * PS_ONE;
+    int current_bottom = current->y + current->height * PS_ONE;
     int target_top = target->y;
 
     if (current->vy <= 0)
         return 0;
-    if (!mg_ranges_overlap(current->x,
-                           current->x + current->width * MG_ONE,
+    if (!ps_ranges_overlap(current->x,
+                           current->x + current->width * PS_ONE,
                            target->x,
-                           target->x + target->width * MG_ONE))
+                           target->x + target->width * PS_ONE))
         return 0;
-    return previous_bottom <= target_top + tolerance_pixels * MG_ONE &&
+    return previous_bottom <= target_top + tolerance_pixels * PS_ONE &&
            current_bottom >= target_top;
 }
 

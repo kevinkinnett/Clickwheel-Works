@@ -10,8 +10,8 @@ cp /project/src/chronolith.c "$rockbox_src/apps/plugins/chronolith.c"
 sed -i 's/\r$//' "$rockbox_src/apps/plugins/chronolith.c"
 cp /project/src/mushroomclock.c "$rockbox_src/apps/plugins/mushroomclock.c"
 sed -i 's/\r$//' "$rockbox_src/apps/plugins/mushroomclock.c"
-cp /project/src/microgame.h "$rockbox_src/apps/plugins/microgame.h"
-sed -i 's/\r$//' "$rockbox_src/apps/plugins/microgame.h"
+cp /project/pocketstep/pocketstep.h "$rockbox_src/apps/plugins/pocketstep.h"
+sed -i 's/\r$//' "$rockbox_src/apps/plugins/pocketstep.h"
 
 if ! grep -qxF 'chronolith.c' "$rockbox_src/apps/plugins/SOURCES"; then
     sed -i '/^chessclock\.c$/a chronolith.c' "$rockbox_src/apps/plugins/SOURCES"

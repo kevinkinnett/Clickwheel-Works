@@ -1,13 +1,14 @@
-# Rockbox Clock Lab
+# Clickwheel Works
 
 This repository contains two animated clocks for the iPod Photo/Color and a
 small C99 platform-game library extracted from the second clock. The target is
 Rockbox `ipodcolor`, tested on a 60 GB A1099 / EMC 2022.
 
-## Microgame
+## PocketStep
 
-[`src/microgame.h`](src/microgame.h) is a header-only fixed-point motion and
-collision library for embedded C games. It has no Rockbox dependency, heap
+[`pocketstep/pocketstep.h`](pocketstep/pocketstep.h) is a header-only
+fixed-point motion and collision library for embedded C games. It has no
+Rockbox dependency, heap
 allocation, floating point, file I/O, or operating-system calls. Mushroom Clock
 uses it for ground and block collision, pipe contacts, moving power-ups, actor
 overlap, and strict stomp classification.
@@ -15,11 +16,13 @@ overlap, and strict stomp classification.
 Run its host tests without booting Rockbox.
 
 ```powershell
-.\scripts\Test-Microgame.ps1
+.\scripts\Test-PocketStep.ps1
 ```
 
-The API and limits are documented in [`docs/microgame.md`](docs/microgame.md).
-The engine uses the MIT License. The Rockbox plugins use GPL-2.0-or-later.
+The API and limits are documented in the
+[`PocketStep README`](pocketstep/README.md). PocketStep also lives in its own
+[GitHub repository](https://github.com/kevinkinnett/PocketStep). The engine uses
+the MIT License. The Rockbox plugins use GPL-2.0-or-later.
 
 ## Chronolith
 
@@ -40,7 +43,7 @@ terminal design lives in `src/chronolith.c`.
 ## Mushroom Clock
 
 Mushroom Clock is a separate animated 8-bit platform clock and the working demo
-for Microgame. A pixel runner crosses a looping stage using fixed-point motion,
+for PocketStep. A pixel runner crosses a looping stage using fixed-point motion,
 gravity, and collision checks against the ground, blocks, pipe, enemies, and
 power-ups. Each surface level has two pairs of blocks. One question block
 releases a coin. The other may release a mushroom or star, or remain empty.
