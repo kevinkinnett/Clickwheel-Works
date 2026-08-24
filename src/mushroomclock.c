@@ -41,7 +41,7 @@
 
 #define SCENARIO_RANDOM -1
 #define SCENARIO_MUSHROOM 0
-#define SCENARIO_EMPTY 1
+#define SCENARIO_ALL_COINS 1
 #define SCENARIO_STAR 2
 #define SCENARIO_HIGH 3
 #define SCENARIO_RETREAT 4
@@ -130,6 +130,8 @@ struct level_state
     int coin_block_bounce;
     int power_block_bounce;
     int coin_frames;
+    int coin_origin_x;
+    int coin_origin_y;
     int powerup_kind;
     int mushroom_mode;
     int mushroom_x;
@@ -237,7 +239,7 @@ static bool wants_underground(const struct tm *now)
 static const char *scenario_name(int scenario)
 {
     static const char *names[SCENARIO_COUNT] = {
-        "MUSHROOM GROWTH", "EMPTY BLOCK", "STAR ATTACK", "HIGH ROUTE",
+        "MUSHROOM GROWTH", "ALL COINS", "STAR ATTACK", "HIGH ROUTE",
         "RETREAT ROUTE", "CLEAN STOMP", "SIDE HIT", "POISON RUN"
     };
 
@@ -865,7 +867,7 @@ static void reset_level(void)
                 level.coin_index = 0;
                 level.power_index = 1;
             }
-            else if (forced_scenario == SCENARIO_EMPTY)
+            else if (forced_scenario == SCENARIO_ALL_COINS)
             {
                 level.enemy_kind = ENEMY_TURTLE;
                 layout = 1;
@@ -998,6 +1000,8 @@ static void reset_level(void)
     level.coin_block_bounce = 0;
     level.power_block_bounce = 0;
     level.coin_frames = 0;
+    level.coin_origin_x = coin_block_x();
+    level.coin_origin_y = coin_block_y();
     level.mushroom_mode = 0;
     level.mushroom_x = (power_block_x() + 2) * 16;
     level.mushroom_y = power_block_y() * 16;
@@ -1041,6 +1045,8 @@ static void hit_coin_block(void)
     level.coin_block_hit = true;
     level.coin_block_bounce = 12;
     level.coin_frames = 36;
+    level.coin_origin_x = coin_block_x();
+    level.coin_origin_y = coin_block_y();
 }
 
 static void hit_power_block(void)
@@ -1051,7 +1057,12 @@ static void hit_power_block(void)
     level.power_block_hit = true;
     level.power_block_bounce = 12;
     if (level.powerup_kind == POWER_NONE)
+    {
+        level.coin_frames = 36;
+        level.coin_origin_x = power_block_x();
+        level.coin_origin_y = power_block_y();
         return;
+    }
     level.mushroom_mode = 1;
     level.mushroom_x = (power_block_x() + 2) * 16;
     level.mushroom_y = power_block_y() * 16;
@@ -1156,6 +1167,7 @@ static void update_runner(void)
     int new_y;
     int new_bottom;
     int impact_vy;
+    bool hold_for_powerup = false;
 
     if (level.death_frames > 0)
     {
@@ -1222,10 +1234,17 @@ static void update_runner(void)
     {
         int power_center = level.mushroom_x / PS_ONE + 6;
         int runner_center = runner.x / PS_ONE + 6;
-        level.runner_direction = runner_center < power_center ? 1 : -1;
+        int delta = power_center - runner_center;
+
+        if (delta > 2)
+            level.runner_direction = 1;
+        else if (delta < -2)
+            level.runner_direction = -1;
+        else
+            hold_for_powerup = true;
     }
     runner.vx = level.runner_direction * PS_ONE;
-    if (level.mushroom_mode == 1)
+    if (level.mushroom_mode == 1 || hold_for_powerup)
         runner.vx = 0;
     runner.vy = level.runner_vy;
     runner.width = 13;
@@ -1440,8 +1459,8 @@ static void draw_level_action(const struct world_palette *p)
     {
         int progress = 36 - level.coin_frames;
         int height = progress < 18 ? progress : 36 - progress;
-        draw_coin(coin_block_x() + 4,
-                  coin_block_y() - 11 - height, p);
+        draw_coin(level.coin_origin_x + 4,
+                  level.coin_origin_y - 11 - height, p);
     }
 
     if (level.mushroom_mode == 2)

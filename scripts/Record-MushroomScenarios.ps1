@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $scenarios = @(
     'mushroom',
-    'empty',
+    'coins',
     'star',
     'high',
     'retreat',

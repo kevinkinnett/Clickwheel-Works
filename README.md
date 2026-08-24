@@ -46,7 +46,7 @@ Mushroom Clock is a separate animated 8-bit platform clock and the working demo
 for PocketStep. A pixel runner crosses a looping stage using fixed-point motion,
 gravity, and collision checks against the ground, blocks, pipe, enemies, and
 power-ups. Each surface level has two pairs of blocks. One question block
-releases a coin. The other may release a mushroom or star, or remain empty.
+releases a coin. The other releases a coin, mushroom, or star.
 Their order, position within each pair, and height can change between laps.
 The mushroom changes the runner into a taller form. The goal flag stays at the
 top until the runner reaches the pole, then slides down. The HUD labels the date and seconds and shows the
@@ -110,7 +110,7 @@ To build and capture Mushroom Clock instead:
 ```
 
 Mushroom Clock also has eight deterministic review scenarios. They cover
-mushroom growth, an empty block, a star attack, the high route, retreat, a
+mushroom growth, an all-coin run, a star attack, the high route, retreat, a
 stomp, a fatal side collision, and the underground poison run. These controls
 exist only in the simulator; laps on the iPod remain random.
 

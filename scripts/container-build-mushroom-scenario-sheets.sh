@@ -5,9 +5,9 @@ video_dir=/project/artifacts/video
 sheet_dir=/project/artifacts/screenshots/mushroomclock/scenarios
 
 mkdir -p "$sheet_dir"
-rm -f "$sheet_dir"/scenario-summary-[0-9].png
+rm -f "$sheet_dir"/scenario-summary-[0-9].png "$sheet_dir/empty-sheet.png"
 
-for scenario in mushroom empty star high retreat stomp sidehit poison; do
+for scenario in mushroom coins star high retreat stomp sidehit poison; do
     video="$video_dir/mushroomclock-scenario-$scenario.mp4"
     sheet="$sheet_dir/$scenario-sheet.png"
     representative="$sheet_dir/.$scenario-review.png"
@@ -26,7 +26,7 @@ done
 
 ffmpeg -hide_banner -loglevel error -y \
     -i "$sheet_dir/.mushroom-review.png" \
-    -i "$sheet_dir/.empty-review.png" \
+    -i "$sheet_dir/.coins-review.png" \
     -i "$sheet_dir/.star-review.png" \
     -i "$sheet_dir/.high-review.png" \
     -i "$sheet_dir/.retreat-review.png" \

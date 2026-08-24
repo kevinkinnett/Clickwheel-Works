@@ -2,7 +2,7 @@ param(
     [ValidateSet('auto', 'night', 'underground', 'sunset', 'variants')]
     [string]$World = 'auto',
 
-    [ValidateSet('random', 'mushroom', 'empty', 'star', 'high', 'retreat',
+    [ValidateSet('random', 'mushroom', 'coins', 'empty', 'star', 'high', 'retreat',
                  'stomp', 'sidehit', 'poison')]
     [string]$Scenario = 'random'
 )

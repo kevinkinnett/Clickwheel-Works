@@ -53,7 +53,7 @@ esac
 case "$scenario" in
     random) ;;
     mushroom) scenario_number=0; scenario_title='Mushroom growth' ;;
-    empty) scenario_number=1; scenario_title='Empty block' ;;
+    coins|empty) scenario_number=1; scenario_title='All coins' ;;
     star) scenario_number=2; scenario_title='Star attack' ;;
     high) scenario_number=3; scenario_title='High route' ;;
     retreat) scenario_number=4; scenario_title='Retreat route' ;;
