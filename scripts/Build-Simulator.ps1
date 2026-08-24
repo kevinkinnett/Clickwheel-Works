@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('chronolith', 'mushroomclock')]
+    [ValidateSet('chronolith', 'mushroomclock', 'storyclock')]
     [string]$Plugin = 'chronolith'
 )
 

@@ -1,7 +1,14 @@
+param(
+    [ValidateSet('chronolith', 'mushroomclock', 'storyclock')]
+    [string]$Plugin = 'chronolith'
+)
+
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $simulatorUrl = 'http://localhost:6080/vnc.html?autoconnect=1&resize=scale'
+
+& "$PSScriptRoot\Build-Simulator.ps1" -Plugin $Plugin
 
 Write-Host "Open $simulatorUrl"
 podman container exists chronolith-simulator
@@ -22,4 +29,4 @@ if ($LASTEXITCODE -ne 0) {
     throw "The Rockbox simulator could not start (exit code $LASTEXITCODE)."
 }
 
-Write-Host 'Clock simulator is running. Use .\scripts\Stop-Simulator.ps1 when finished.'
+Write-Host "$Plugin simulator is running. Use .\scripts\Stop-Simulator.ps1 when finished."

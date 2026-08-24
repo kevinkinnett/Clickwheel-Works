@@ -24,8 +24,99 @@ PocketStep does not draw sprites, read controls, load maps, or decide what an
 enemy should do. The application owns those choices. This keeps the same
 physics usable in Rockbox, a command-line test, or another embedded target.
 
-PocketStep currently powers Mushroom Clock in
+PocketStep currently powers Mushroom Clock and the autonomous Story Clock in
 [Clickwheel Works](https://github.com/kevinkinnett/Clickwheel-Works).
+
+## Grid navigation
+
+`pocketstep_grid.h` is an optional module for fixed-screen top-down games. It
+stores no map data itself. The application supplies a row-major byte array in
+which zero is passable and any other value is blocked. By default, a grid can
+contain up to 143 cells. Define `PS_GRID_MAX_CELLS` before including the header
+to choose another limit.
+
+Define its implementation once after the core implementation.
+
+```c
+#define POCKETSTEP_IMPLEMENTATION
+#include "pocketstep.h"
+#define POCKETSTEP_GRID_IMPLEMENTATION
+#include "pocketstep_grid.h"
+```
+
+Find a four-direction route with caller-owned storage.
+
+```c
+static const unsigned char blocked[15] = {
+    0, 0, 0, 0, 0,
+    0, 1, 1, 1, 0,
+    0, 0, 0, 0, 0
+};
+struct ps_grid grid = { 5, 3, blocked };
+struct ps_grid_workspace workspace;
+struct ps_grid_cell steps[15];
+struct ps_grid_path path = { steps, 15, 0 };
+
+if (ps_grid_find_path(&grid, 0, 0, 4, 2,
+                      &workspace, &path) == PS_PATH_FOUND)
+    follow_steps(path.cells, path.count);
+```
+
+The returned path excludes the starting cell and includes the destination.
+The search checks neighbors in up, right, down, left order, so equal shortest
+routes resolve the same way on every run. `PS_PATH_NO_ROUTE` means the
+destination cannot be reached. `PS_PATH_CAPACITY` means a route exists but does
+not fit in the supplied path buffer; PocketStep returns no partial route.
+
+Interaction regions are non-solid rectangles with numeric IDs. A facing query
+shifts a body-sized probe in one of the four grid directions.
+
+```c
+struct ps_region chest = { { 32, 16, 16, 16 }, CHEST_ID };
+int id = ps_region_find_facing(&chest, 1, &actor, PS_GRID_UP, 4);
+```
+
+## Autonomous stories
+
+`pocketstep_story.h` is an optional completion-driven action sequencer. The
+director keeps an index, wait counter, and state. The application supplies a
+static action table and a callback that performs world-specific work.
+
+```c
+#define POCKETSTEP_STORY_IMPLEMENTATION
+#include "pocketstep_story.h"
+
+static const struct ps_story_action morning[] = {
+    { PS_STORY_ACTION_WALK, 5, 3, 0, 0 },
+    { PS_STORY_ACTION_FACE, PS_GRID_UP, 0, 0, 0 },
+    { PS_STORY_ACTION_SAY, 0, 0, 0, "I should take this." },
+    { PS_STORY_ACTION_COLLECT, PARCEL_ID, 0, 0, 0 },
+    { PS_STORY_ACTION_END, 0, 0, 0, 0 }
+};
+```
+
+Initialize a looping director and update it once per fixed game update.
+
+```c
+struct ps_story_director director;
+
+ps_story_init(&director, morning, ARRAYLEN(morning), 1);
+ps_story_update(&director, handle_action, reset_world, &game);
+```
+
+The callback returns `PS_STORY_ACTION_PENDING`, `PS_STORY_ACTION_DONE`, or
+`PS_STORY_ACTION_FAILED`. A pending action remains current, so a walk can wait
+for the actor to reach its destination. A failed action stops the director at
+that index. Wait actions are handled internally in update counts. End actions
+either set `PS_STORY_COMPLETE` or call the reset callback and return a looping
+director to its opening action.
+
+Story Clock combines these two optional modules on a 13 by 11 grid. A walk
+action requests a deterministic BFS route only once, then remains pending while
+the actor moves between cell centers. Dialogue and collection cannot start
+early because the director advances only after the walk callback reports
+completion. If a destination has no route, the callback fails and the
+application keeps a visible diagnostic on screen instead of crossing a wall.
 
 ## Build and test
 

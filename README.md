@@ -1,7 +1,7 @@
 # Clickwheel Works
 
-This repository contains two animated clocks for the iPod Photo/Color and a
-small C99 platform-game library extracted from the second clock. The target is
+This repository contains three animated clocks for the iPod Photo/Color and a
+small C99 game library extracted from the clock experiments. The target is
 Rockbox `ipodcolor`, tested on a 60 GB A1099 / EMC 2022.
 
 ## PocketStep
@@ -13,6 +13,10 @@ allocation, floating point, file I/O, or operating-system calls. Mushroom Clock
 uses it for ground and block collision, pipe contacts, moving power-ups, actor
 overlap, strict stomp classification, destructible colliders, and
 bottom-anchored character resizing.
+
+The optional `pocketstep_grid.h` and `pocketstep_story.h` modules add
+fixed-memory tile routing, facing interaction probes, and completion-driven
+autonomous sequences. Story Clock uses them for its top-down vignette.
 
 Run its host tests without booting Rockbox.
 
@@ -69,6 +73,21 @@ above ground. Day, night, and sunset can also be selected
 with the click wheel. The simulator retains a manual underground selection for
 repeatable visual testing; the iPod build schedules it only from the clock.
 
+## Story Clock
+
+Story Clock is the temporary internal name for an autonomous top-down story
+screensaver. It is not a playable game. Luma wakes in a 13×11 tile house,
+collects an ember key, speaks with Mira, follows a collision-safe route outside,
+meets Tovin, reaches the hill beacon, and then begins the vignette again.
+
+The program uses caller-owned breadth-first-search storage, fixed-point motion
+between tile centers, a small foot collider, foot-Y depth sorting, two-line
+automatically timed dialogue, and an inventory indicator. The clock continues
+to read Rockbox time during movement and conversations. Outdoor colors follow
+day, evening, and night while the map and collision cells remain unchanged.
+Simulator-only scenario files can force a palette for deterministic review.
+All maps, characters, dialogue, and pixel art are original to this project.
+
 ## Controls
 
 - Scroll the click wheel to switch between Phosphor, Magi Amber, and Emergency.
@@ -85,8 +104,8 @@ PowerShell:
 
 ```powershell
 .\scripts\Initialize-Environment.ps1
-.\scripts\Build-Simulator.ps1
-.\scripts\Run-Simulator.ps1
+.\scripts\Build-Simulator.ps1 -Plugin storyclock
+.\scripts\Run-Simulator.ps1 -Plugin storyclock
 ```
 
 Then open
@@ -105,6 +124,10 @@ For a repeatable headless visual test:
 
 That boots Rockbox, launches Chronolith, operates the virtual click wheel, and
 writes full-device and LCD-only PNGs under `artifacts/screenshots`.
+
+The `-Plugin` argument accepts `chronolith`, `mushroomclock`, or `storyclock`.
+The selected plugin becomes the simulator's `autostart.rock`; the source files
+do not need to be edited.
 
 To build and capture Mushroom Clock instead:
 
@@ -127,6 +150,18 @@ The first command writes one 15-second LCD-only MP4 per scenario under
 `artifacts/video`. The second creates per-scenario contact sheets and a combined
 review sheet under `artifacts/screenshots/mushroomclock/scenarios`.
 
+Record the complete autonomous Story Clock loop and build its LCD-only review
+sheet with:
+
+```powershell
+.\scripts\Record-StoryClock.ps1 -Scenario day
+.\scripts\Build-StoryClockContactSheet.ps1 -Scenario day
+```
+
+`Scenario` can be `auto`, `day`, `evening`, or `night`. The MP4 is written to
+`artifacts/video`; the 4×2 review sheet is under
+`artifacts/screenshots/storyclock`.
+
 The captures go under `artifacts/screenshots`. The repository ignores that
 directory because recordings and device builds are local products.
 
@@ -147,8 +182,10 @@ This creates:
   for this exact custom Rockbox build.
 - `artifacts/device/mushroomclock-ipodcolor-rockbox-4.0.rock` is the standalone
   Mushroom Clock plugin for Rockbox 4.0.
+- `artifacts/device/storyclock-ipodcolor-rockbox-4.0.rock` is the standalone
+  Story Clock plugin for Rockbox 4.0.
 - `artifacts/device/rockbox-ipodcolor-4.0-official-plus-clocks.zip` is official
-  Rockbox 4.0 with both clock plugins added.
+  Rockbox 4.0 with all three clock plugins added.
 - `artifacts/device/rockbox-chronolith.ipod` is the firmware binary.
 - `artifacts/device/SHA256SUMS` contains checksums for the device artifacts.
 
@@ -162,8 +199,9 @@ disk and uses 8,962 bytes of code/data plus 1,180 bytes of static memory.
 Back up the iPod first. The recommended package upgrades the Rockbox files to
 official 4.0 and adds Chronolith; it does not replace the existing Rockbox
 bootloader. Both clock plugins have been simulator-tested and run on the
-physical iPod. The generated custom firmware artifact was not flashed during
-plugin iteration.
+physical iPod. Story Clock has been simulator-tested; its new device artifact
+has not yet been exercised on the physical iPod. The generated custom firmware
+artifact was not flashed during plugin iteration.
 
 1. Connect the iPod in disk mode and expose hidden files.
 2. Extract `rockbox-ipodcolor-4.0-official-plus-chronolith.zip` into the iPod's
@@ -177,6 +215,7 @@ firmware and plugin stay matched.
 
 ## Source and license
 
-The clock lives in `src/chronolith.c`. The build is pinned to Rockbox
+The plugins live in `src/chronolith.c`, `src/mushroomclock.c`, and
+`src/storyclock.c`. The build is pinned to Rockbox
 `v4.0-final` (`e094c599fa60236527f9e272e0b8309d7696e399`). Chronolith is
 licensed under GPL-2.0-or-later, matching Rockbox.

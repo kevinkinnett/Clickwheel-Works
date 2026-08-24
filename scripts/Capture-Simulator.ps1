@@ -1,6 +1,13 @@
+param(
+    [ValidateSet('chronolith', 'mushroomclock', 'storyclock')]
+    [string]$Plugin = 'chronolith'
+)
+
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
+
+& "$PSScriptRoot\Build-Simulator.ps1" -Plugin $Plugin
 
 podman run --rm `
     --mount type=volume,source=chronolith-rockbox-src,target=/rockbox `
