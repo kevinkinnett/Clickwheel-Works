@@ -137,3 +137,19 @@ Three additional CC0 sources are retained with local licensing notes:
   license note.
 
 The complete CC0 1.0 legal text is retained once at `LICENSES/CC0-1.0.txt`.
+
+## Satchel and keepsake art
+
+The inventory pass audited the existing Story Clock manifest and retained
+sources before generating anything new. The Ember Key reuses `story_key`; the
+Brass Cog comes from the generated mill wheel; the Iron Charm uses the CC0
+AntumDeluge anvil; and the Seed Pouch and Mint Sprig use native cells from the
+CC0 josehzz farming sheet. Their original licenses and attribution remain in
+the third-party directories listed above.
+
+Only two gaps required new art. OpenAI's built-in image-generation mode made
+`inventory-satchel-generated-v1.png` and
+`inventory-market-token-generated-v1.png`. Their complete prompts are retained
+beside them as `.prompt.txt` files. The manifest crops each source, reduces it
+with nearest-neighbor sampling, and emits a deterministic 16 by 16 icon. No
+external paid generation API was used for this pass.

@@ -91,7 +91,10 @@ class AssetCompilerTests(unittest.TestCase):
     def test_storyclock_working_village_manifest(self):
         manifest_path = PROJECT_ROOT / "assets" / "storyclock" / "assets.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        self.assertTrue({"farming_crops", "chicken_pen", "anvil"} <=
+        self.assertTrue({
+            "farming_crops", "chicken_pen", "anvil",
+            "inventory_satchel", "inventory_market_token",
+        } <=
                         set(manifest["sources"]))
         names = {asset["name"] for asset in manifest["assets"]}
         self.assertTrue({
@@ -100,14 +103,26 @@ class AssetCompilerTests(unittest.TestCase):
             "story_chicken_a", "story_chicken_b",
             "story_chicken_pen", "story_smithy_anvil",
             "story_potting_shed",
+            "story_inventory_satchel", "story_item_key",
+            "story_item_market_token", "story_item_brass_cog",
+            "story_item_iron_charm", "story_item_seed_pouch",
+            "story_item_mint_sprig",
         } <= names)
+        self.assertTrue((manifest_path.parent /
+                         "inventory-satchel-generated-v1.prompt.txt").is_file())
+        self.assertTrue((manifest_path.parent /
+                         "inventory-market-token-generated-v1.prompt.txt").is_file())
         output = COMPILER.compile_manifest(
             manifest_path, self.directory / "storyclock_assets.h")
         text = output.read_text(encoding="ascii")
         self.assertIn("story_chicken_a_night[256]", text)
         self.assertIn("story_chicken_pen_day[2304]", text)
         self.assertIn("story_potting_shed_day[6400]", text)
+        self.assertIn("story_inventory_satchel[256]", text)
+        self.assertIn("story_item_market_token[256]", text)
+        self.assertIn("story_item_mint_sprig[256]", text)
         self.assertIn("josehzz | CC0 1.0", text)
+        self.assertIn("OpenAI built-in image generation", text)
 
 
 if __name__ == "__main__":

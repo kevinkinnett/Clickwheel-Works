@@ -14,9 +14,10 @@ Then build and capture Mushroom Clock.
 .\scripts\Capture-MushroomClock.ps1
 ```
 
-Keep `pocketstep/pocketstep.h` independent of Rockbox. It must compile as C99 without
-allocation, floating point, operating-system headers, or global state. Put
-device APIs, clock behavior, drawing, and level selection in the application.
+Keep every PocketStep runtime header independent of Rockbox. It must compile
+as C99 without allocation, floating point, operating-system headers, or global
+state. Put device APIs, clock behavior, drawing, and level selection in the
+application.
 
 Add a host test for every collision bug. A visual capture is useful evidence,
 but it is not a substitute for a repeatable assertion.

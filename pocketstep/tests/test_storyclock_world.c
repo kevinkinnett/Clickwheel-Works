@@ -7,6 +7,8 @@
 #include "../pocketstep_grid.h"
 #define POCKETSTEP_SCENE_IMPLEMENTATION
 #include "../pocketstep_scene.h"
+#define POCKETSTEP_INVENTORY_IMPLEMENTATION
+#include "../pocketstep_inventory.h"
 
 #define W 13
 #define H 11
@@ -314,7 +316,19 @@ static void test_village_links_entrances_and_props(void)
             "garden must return to the market east path");
 }
 
-static void test_interactions_and_item_transition(void)
+static int grant_unique(struct ps_inventory *inventory, int item_id,
+                        int *presented)
+{
+    *presented = 0;
+    if (ps_inventory_quantity(inventory, item_id) > 0)
+        return PS_INVENTORY_OK;
+    if (ps_inventory_add(inventory, item_id, 1, 1) != PS_INVENTORY_OK)
+        return PS_INVENTORY_FULL;
+    *presented = 1;
+    return PS_INVENTORY_OK;
+}
+
+static void test_interactions_and_inventory_lifecycle(void)
 {
     const struct ps_region house_regions[] = {
         { { 150, 64, 16, 16 }, 10 }, { { 38, 64, 16, 16 }, 11 }
@@ -323,13 +337,20 @@ static void test_interactions_and_item_transition(void)
         { { 54, 80, 16, 16 }, 12 }, { { 166, 32, 16, 16 }, 13 }
     };
     struct ps_body actor = { 138 * PS_ONE, 72 * PS_ONE, 0, 0, 8, 6 };
-    int collected = 0;
+    struct ps_inventory_slot slots[12];
+    struct ps_inventory inventory;
+    int presented;
+    int item_id;
+    int before_count;
 
+    require(ps_inventory_init(&inventory, slots, 12),
+            "story inventory must initialize with twelve slots");
     require(ps_region_find_facing(house_regions, 2, &actor,
                                   PS_GRID_RIGHT, 12) == 10,
             "item interaction ID must face the item");
-    collected = 1;
-    require(collected, "collection must change inventory state");
+    require(ps_inventory_add(&inventory, 1, 1, 1) == PS_INVENTORY_OK &&
+            ps_inventory_quantity(&inventory, 1) == 1,
+            "ember key collection must enter inventory");
     actor.x = 58 * PS_ONE;
     require(ps_region_find_facing(house_regions, 2, &actor,
                                   PS_GRID_LEFT, 12) == 11,
@@ -344,15 +365,43 @@ static void test_interactions_and_item_transition(void)
     require(ps_region_find_facing(outdoor_regions, 2, &actor,
                                   PS_GRID_RIGHT, 12) == 13,
             "beacon interaction ID must be reachable");
-    collected = 0;
-    require(!collected, "story reset must clear inventory state");
+    require(ps_inventory_remove(&inventory, 1, 1) == PS_INVENTORY_OK &&
+            ps_inventory_quantity(&inventory, 1) == 0,
+            "beacon activation must consume the ember key");
+
+    for (item_id = 2; item_id <= 6; ++item_id)
+    {
+        require(grant_unique(&inventory, item_id, &presented) ==
+                PS_INVENTORY_OK && presented,
+                "first district reward must be retained and presented");
+    }
+    require(ps_inventory_count(&inventory) == 5,
+            "five district keepsakes must persist in stable order");
+    before_count = ps_inventory_count(&inventory);
+    require(grant_unique(&inventory, 2, &presented) == PS_INVENTORY_OK &&
+            !presented && ps_inventory_count(&inventory) == before_count,
+            "duplicate district route must neither add nor present reward");
+
+    /* A story-loop reset only clears presentation state, not this inventory. */
+    require(ps_inventory_quantity(&inventory, 2) == 1 &&
+            ps_inventory_quantity(&inventory, 6) == 1,
+            "session keepsakes must survive story-loop reset boundaries");
+    for (item_id = 7; item_id <= 13; ++item_id)
+        require(ps_inventory_add(&inventory, item_id, 1, 1) ==
+                PS_INVENTORY_OK, "test inventory must fill exactly");
+    before_count = ps_inventory_count(&inventory);
+    require(ps_inventory_add(&inventory, 99, 1, 1) ==
+            PS_INVENTORY_FULL &&
+            ps_inventory_count(&inventory) == before_count &&
+            ps_inventory_quantity(&inventory, 99) == 0,
+            "full-capacity reward failure must be atomic");
 }
 
 int main(void)
 {
     test_authored_routes_and_spawns();
     test_village_links_entrances_and_props();
-    test_interactions_and_item_transition();
+    test_interactions_and_inventory_lifecycle();
     puts("Story Clock world tests passed.");
     return 0;
 }

@@ -83,7 +83,9 @@
     "village_well": { "path": "village-well-generated-v1.png" },
     "farming_crops": { "path": "third-party/josehzz-farming-crops/Crop_Spritesheet.png" },
     "chicken_pen": { "path": "third-party/proyd-chicken-pen/chicken.png" },
-    "anvil": { "path": "third-party/antumdeluge-anvil/anvil-16x16-black.png" }
+    "anvil": { "path": "third-party/antumdeluge-anvil/anvil-16x16-black.png" },
+    "inventory_satchel": { "path": "inventory-satchel-generated-v1.png" },
+    "inventory_market_token": { "path": "inventory-market-token-generated-v1.png" }
   },
   "assets": [
     {
@@ -290,6 +292,60 @@
         { "op": "crop", "rect": [160, 0, 32, 32] },
         { "op": "color_key", "color": [255, 255, 255], "tolerance": 10 },
         { "op": "resize", "size": [16, 16] }
+      ]
+    },
+    {
+      "name": "story_inventory_satchel",
+      "operations": [
+        { "op": "source", "source": "inventory_satchel" },
+        { "op": "crop", "rect": [250, 250, 650, 650] },
+        { "op": "resize", "size": [16, 16] }
+      ]
+    },
+    {
+      "name": "story_item_key",
+      "operations": [
+        { "op": "asset", "asset": "story_key" }
+      ]
+    },
+    {
+      "name": "story_item_market_token",
+      "operations": [
+        { "op": "source", "source": "inventory_market_token" },
+        { "op": "crop", "rect": [229, 205, 915, 918] },
+        { "op": "resize", "size": [16, 16] }
+      ]
+    },
+    {
+      "name": "story_item_brass_cog",
+      "operations": [
+        { "op": "source", "source": "mill_wheel_animation" },
+        { "op": "crop", "rect": [37, 145, 432, 512] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 30 },
+        { "op": "resize", "size": [16, 16] }
+      ]
+    },
+    {
+      "name": "story_item_iron_charm",
+      "operations": [
+        { "op": "source", "source": "anvil" },
+        { "op": "tint", "multiply": [1, 1, 1], "add": [55, 55, 50] }
+      ]
+    },
+    {
+      "name": "story_item_seed_pouch",
+      "operations": [
+        { "op": "source", "source": "farming_crops" },
+        { "op": "crop", "rect": [0, 80, 16, 16] },
+        { "op": "color_key", "color": [0, 0, 0], "tolerance": 20 }
+      ]
+    },
+    {
+      "name": "story_item_mint_sprig",
+      "operations": [
+        { "op": "source", "source": "farming_crops" },
+        { "op": "crop", "rect": [16, 16, 16, 16] },
+        { "op": "color_key", "color": [0, 0, 0], "tolerance": 20 }
       ]
     },
     {

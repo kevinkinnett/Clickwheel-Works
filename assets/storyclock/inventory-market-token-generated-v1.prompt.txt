@@ -1,0 +1,13 @@
+Generator: OpenAI built-in image generation
+Date: 2026-08-26
+License: Project-owned generated artwork
+
+Use case: stylized-concept
+Asset type: source artwork for a 16 by 16 JRPG inventory icon
+Primary request: one small round village market token, old hammered brass with a simple four-point sun stamped in the center and a slightly irregular circular edge
+Scene/backdrop: genuinely transparent background
+Style/medium: crisp 16-bit pixel art, hard square pixel clusters, limited palette, no antialiasing
+Composition/framing: single token centered and seen almost face-on with generous transparent margin, readable when reduced to 16 by 16 pixels
+Color palette: dark plum outline, antique brass, ochre, one pale yellow highlight
+Constraints: exactly one token; transparent background; no cast shadow; no text; no letters; no numbers; no border; no watermark; no extra objects
+Avoid: modern coin, photorealism, gradients, soft edges, excessive detail, bag, gems

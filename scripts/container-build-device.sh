@@ -13,7 +13,8 @@ for source_name in $supported_plugins; do
 done
 
 for header_name in pocketstep pocketstep_grid pocketstep_story \
-                   pocketstep_draw pocketstep_anim pocketstep_scene; do
+                   pocketstep_inventory pocketstep_text pocketstep_draw \
+                   pocketstep_anim pocketstep_scene; do
     cp "/project/pocketstep/$header_name.h" "$rockbox_src/apps/plugins/$header_name.h"
     sed -i 's/\r$//' "$rockbox_src/apps/plugins/$header_name.h"
 done

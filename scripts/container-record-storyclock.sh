@@ -19,6 +19,24 @@ case "$scenario" in
     gate) scenario_number=12 ;;
     farm) scenario_number=13 ;;
     garden) scenario_number=14 ;;
+    inventory)
+        scenario_number=70
+        capture_duration=10
+        output_duration=9
+        trim_start=0.5
+        ;;
+    inventory-empty)
+        scenario_number=71
+        capture_duration=8
+        output_duration=7
+        trim_start=0.5
+        ;;
+    dialogue)
+        scenario_number=75
+        capture_duration=13
+        output_duration=12
+        trim_start=0.5
+        ;;
     *) echo "Unknown Story Clock scenario: $scenario" >&2; exit 2 ;;
 esac
 

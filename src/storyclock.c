@@ -17,6 +17,10 @@
 #include "pocketstep_grid.h"
 #define POCKETSTEP_STORY_IMPLEMENTATION
 #include "pocketstep_story.h"
+#define POCKETSTEP_INVENTORY_IMPLEMENTATION
+#include "pocketstep_inventory.h"
+#define POCKETSTEP_TEXT_IMPLEMENTATION
+#include "pocketstep_text.h"
 #define POCKETSTEP_DRAW_IMPLEMENTATION
 #include "pocketstep_draw.h"
 #define POCKETSTEP_ANIM_IMPLEMENTATION
@@ -36,6 +40,7 @@
 #define MAP_GUTTER 6
 #define ROUTE_CAPACITY (MAP_WIDTH * MAP_HEIGHT)
 #define DRAWABLE_CAPACITY 48
+#define INVENTORY_CAPACITY 12
 #define SCENE_HOUSE 0
 #define SCENE_COTTAGE 1
 #define SCENE_GREEN 2
@@ -45,6 +50,11 @@
 #define SCENE_FIELDS 6
 #define SCENE_GARDEN 7
 #define ITEM_KEY 1
+#define ITEM_MARKET_TOKEN 2
+#define ITEM_BRASS_COG 3
+#define ITEM_IRON_CHARM 4
+#define ITEM_SEED_POUCH 5
+#define ITEM_MINT_SPRIG 6
 #define REGION_ITEM 10
 #define REGION_INDOOR_NPC 11
 #define REGION_OUTDOOR_NPC 12
@@ -68,6 +78,22 @@
 #define DRAW_ITEM 3
 #define DRAW_TALL 4
 #define DRAW_GATE_FOREGROUND 5
+#define STORY_ACTION_GRANT_ITEM 100
+#define STORY_ACTION_PRESENT_INVENTORY 101
+#define STORY_ACTION_CONSUME_ITEM 102
+#define STORY_FAILURE_INVENTORY_FULL -100
+#define STORY_FAILURE_INVENTORY_STATE -101
+#define STORY_FAILURE_DIALOGUE -102
+#define INVENTORY_PHASE_CLOSED 0
+#define INVENTORY_PHASE_OPENING 1
+#define INVENTORY_PHASE_HOLD 2
+#define INVENTORY_PHASE_CYCLE 3
+#define INVENTORY_PHASE_CLOSING 4
+#define INVENTORY_PHASE_HELD_OPEN 5
+#define INVENTORY_OPEN_FRAMES 8
+#define INVENTORY_FOCUS_FRAMES 20
+#define DIALOGUE_LINE_CAPACITY 48
+#define DIALOGUE_MIN_PAGE_FRAMES 44
 #define OUTDOOR_PROP_CRATE 100
 #define OUTDOOR_PROP_BARREL 101
 #define OUTDOOR_PROP_WELL 102
@@ -112,6 +138,16 @@ struct palette
     unsigned int box;
 };
 
+struct story_item_definition
+{
+    int id;
+    int max_stack;
+    const char *name;
+    const char *line_one;
+    const char *line_two;
+    const unsigned short *icon;
+};
+
 struct story_state
 {
     struct ps_body actor;
@@ -124,9 +160,20 @@ struct story_state
     int scene;
     int facing;
     int walk_distance;
-    int item_collected;
+    struct ps_inventory_slot inventory_slots[INVENTORY_CAPACITY];
+    struct ps_inventory inventory;
+    int recent_item_id;
+    int inventory_phase;
+    int inventory_phase_frame;
+    int inventory_focus;
+    int inventory_cycle_remaining;
     int dialogue_frames;
     int dialogue_speaker;
+    int dialogue_next_offset;
+    int dialogue_page;
+    int dialogue_page_count;
+    char dialogue_line_one[DIALOGUE_LINE_CAPACITY];
+    char dialogue_line_two[DIALOGUE_LINE_CAPACITY];
     int npc_facing[8];
     uint32_t loop_index;
     int initialized;
@@ -510,31 +557,48 @@ static const struct palette night_palette = {
     LCD_RGBPACK(34, 66, 111), LCD_RGBPACK(210, 228, 199), LCD_RGBPACK(13, 20, 36)
 };
 
+static const struct story_item_definition item_catalog[] = {
+    { ITEM_KEY, 1, "EMBER KEY", "Warm as dawn", "Opens beacon",
+      story_item_key },
+    { ITEM_MARKET_TOKEN, 1, "MARKET TOKEN", "Sun-stamped", "Market brass",
+      story_item_market_token },
+    { ITEM_BRASS_COG, 1, "BRASS COG", "River-worn", "Keeps time",
+      story_item_brass_cog },
+    { ITEM_IRON_CHARM, 1, "IRON CHARM", "Forge-cooled", "Road ward",
+      story_item_iron_charm },
+    { ITEM_SEED_POUCH, 1, "SEED POUCH", "Field seeds", "For spring",
+      story_item_seed_pouch },
+    { ITEM_MINT_SPRIG, 1, "MINT SPRIG", "Garden mint", "Rain-sweet",
+      story_item_mint_sprig }
+};
+
 #define STORY_OPENING \
     { PS_STORY_ACTION_WAIT, 24, 0, 0, NULL }, \
     { PS_STORY_ACTION_SAY, 0, 0, 0, "Morning already? The ember clock is chiming." }, \
     { PS_STORY_ACTION_WALK, 8, 4, 0, NULL }, \
     { PS_STORY_ACTION_FACE, PS_GRID_RIGHT, 0, 0, NULL }, \
     { PS_STORY_ACTION_COLLECT, ITEM_KEY, REGION_ITEM, 0, NULL }, \
+    { STORY_ACTION_PRESENT_INVENTORY, 0, 0, 0, NULL }, \
     { PS_STORY_ACTION_SAY, 0, 0, 0, "The ember key is warm. Mira will know why." }, \
     { PS_STORY_ACTION_WALK, 3, 4, 0, NULL }, \
     { PS_STORY_ACTION_FACE, PS_GRID_LEFT, 0, 0, NULL }, \
-    { PS_STORY_ACTION_SAY, 1, 0, 0, "Mira: Take it to the hill beacon before the light fades." }, \
+    { PS_STORY_ACTION_SAY, 1, 0, 0, "Take it to the hill beacon before the light fades." }, \
     { PS_STORY_ACTION_WALK, 6, 9, 0, NULL }, \
     { PS_STORY_ACTION_SCENE, SCENE_COTTAGE, 6, 4, NULL }, \
     { PS_STORY_ACTION_FACE, PS_GRID_DOWN, 0, 0, NULL }, \
     { PS_STORY_ACTION_WAIT, 18, 0, 0, NULL }, \
     { PS_STORY_ACTION_WALK, 4, 5, 0, NULL }, \
     { PS_STORY_ACTION_FACE, PS_GRID_LEFT, 0, 0, NULL }, \
-    { PS_STORY_ACTION_SAY, 2, 0, 0, "Tovin: The river keeps old songs. The beacon keeps promises." }, \
+    { PS_STORY_ACTION_SAY, 2, 0, 0, "The river keeps old songs. The beacon keeps promises." }, \
     { PS_STORY_ACTION_WALK, 9, 2, 0, NULL }, \
     { PS_STORY_ACTION_FACE, PS_GRID_RIGHT, 0, 0, NULL }, \
     { PS_STORY_ACTION_SAY, 0, 0, 0, "The key turns. A small new star joins the evening sky." }, \
+    { STORY_ACTION_CONSUME_ITEM, ITEM_KEY, 1, 0, NULL }, \
     { PS_STORY_ACTION_WALK, 6, 9, 0, NULL }, \
     { PS_STORY_ACTION_LINK_SCENE, PS_GRID_DOWN, 0, 0, NULL }, \
     { PS_STORY_ACTION_WALK, 6, 5, 0, NULL }, \
     { PS_STORY_ACTION_FACE, PS_GRID_RIGHT, 0, 0, NULL }, \
-    { PS_STORY_ACTION_SAY, 3, 0, 0, "Eda: The hill light is awake. The whole green can feel it." }
+    { PS_STORY_ACTION_SAY, 3, 0, 0, "The hill light is awake. The whole green can feel it." }
 
 static const struct ps_story_action market_actions[] = {
     STORY_OPENING,
@@ -542,7 +606,9 @@ static const struct ps_story_action market_actions[] = {
     { PS_STORY_ACTION_LINK_SCENE, PS_GRID_RIGHT, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 8, 5, 0, NULL },
     { PS_STORY_ACTION_FACE, PS_GRID_DOWN, 0, 0, NULL },
-    { PS_STORY_ACTION_SAY, 5, 0, 0, "Sera: Fresh bread, lamp oil, and one story nobody believes." },
+    { PS_STORY_ACTION_SAY, 5, 0, 0, "A market token for the road. Spend the luck, not the brass." },
+    { STORY_ACTION_GRANT_ITEM, ITEM_MARKET_TOKEN, 1, 0, NULL },
+    { STORY_ACTION_PRESENT_INVENTORY, 0, 0, 0, NULL },
     { PS_STORY_ACTION_WAIT, 28, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 1, 5, 0, NULL },
     { PS_STORY_ACTION_LINK_SCENE, PS_GRID_LEFT, 0, 0, NULL },
@@ -559,7 +625,9 @@ static const struct ps_story_action mill_actions[] = {
     { PS_STORY_ACTION_LINK_SCENE, PS_GRID_LEFT, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 6, 5, 0, NULL },
     { PS_STORY_ACTION_FACE, PS_GRID_DOWN, 0, 0, NULL },
-    { PS_STORY_ACTION_SAY, 4, 0, 0, "Bran: The wheel missed one beat, then caught the river again." },
+    { PS_STORY_ACTION_SAY, 4, 0, 0, "This brass cog kept time before the wheel learned the river." },
+    { STORY_ACTION_GRANT_ITEM, ITEM_BRASS_COG, 1, 0, NULL },
+    { STORY_ACTION_PRESENT_INVENTORY, 0, 0, 0, NULL },
     { PS_STORY_ACTION_WAIT, 28, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 11, 5, 0, NULL },
     { PS_STORY_ACTION_LINK_SCENE, PS_GRID_RIGHT, 0, 0, NULL },
@@ -576,7 +644,9 @@ static const struct ps_story_action gate_actions[] = {
     { PS_STORY_ACTION_LINK_SCENE, PS_GRID_DOWN, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 6, 6, 0, NULL },
     { PS_STORY_ACTION_FACE, PS_GRID_RIGHT, 0, 0, NULL },
-    { PS_STORY_ACTION_SAY, 6, 0, 0, "Rowan: The south lanterns are lit. The road can find its way home." },
+    { PS_STORY_ACTION_SAY, 6, 0, 0, "Take this iron charm. The south road respects a little weight." },
+    { STORY_ACTION_GRANT_ITEM, ITEM_IRON_CHARM, 1, 0, NULL },
+    { STORY_ACTION_PRESENT_INVENTORY, 0, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 6, 9, 0, NULL },
     { PS_STORY_ACTION_WAIT, 28, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 6, 1, 0, NULL },
@@ -594,12 +664,14 @@ static const struct ps_story_action farm_actions[] = {
     { PS_STORY_ACTION_LINK_SCENE, PS_GRID_DOWN, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 6, 6, 0, NULL },
     { PS_STORY_ACTION_FACE, PS_GRID_LEFT, 0, 0, NULL },
-    { PS_STORY_ACTION_SAY, 6, 0, 0, "Rowan: The forge is awake. Orin's gate hinge will be ready by dusk." },
+    { PS_STORY_ACTION_SAY, 6, 0, 0, "The forge is awake. Orin's gate hinge will be ready by dusk." },
     { PS_STORY_ACTION_WALK, 6, 9, 0, NULL },
     { PS_STORY_ACTION_LINK_SCENE, PS_GRID_DOWN, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 7, 5, 0, NULL },
     { PS_STORY_ACTION_FACE, PS_GRID_RIGHT, 0, 0, NULL },
-    { PS_STORY_ACTION_SAY, 7, 0, 0, "Orin: Wheat for the mill, corn for winter, and one hen with other plans." },
+    { PS_STORY_ACTION_SAY, 7, 0, 0, "A seed pouch for spring. Even travelers should plant something." },
+    { STORY_ACTION_GRANT_ITEM, ITEM_SEED_POUCH, 1, 0, NULL },
+    { STORY_ACTION_PRESENT_INVENTORY, 0, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 8, 7, 0, NULL },
     { PS_STORY_ACTION_FACE, PS_GRID_RIGHT, 0, 0, NULL },
     { PS_STORY_ACTION_SAY, 0, 0, 0, "She pauses at the fence, then decides the crops are safer company." },
@@ -623,7 +695,9 @@ static const struct ps_story_action garden_actions[] = {
     { PS_STORY_ACTION_LINK_SCENE, PS_GRID_RIGHT, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 6, 7, 0, NULL },
     { PS_STORY_ACTION_FACE, PS_GRID_RIGHT, 0, 0, NULL },
-    { PS_STORY_ACTION_SAY, 8, 0, 0, "Nel: The roses tell the bees where to land. The mint tells everyone else." },
+    { PS_STORY_ACTION_SAY, 8, 0, 0, "Mint for the road. Crush one leaf when the rain feels far away." },
+    { STORY_ACTION_GRANT_ITEM, ITEM_MINT_SPRIG, 1, 0, NULL },
+    { STORY_ACTION_PRESENT_INVENTORY, 0, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 5, 6, 0, NULL },
     { PS_STORY_ACTION_FACE, PS_GRID_DOWN, 0, 0, NULL },
     { PS_STORY_ACTION_SAY, 0, 0, 0, "A drop slides from one mint leaf to the next without touching the soil." },
@@ -654,6 +728,20 @@ static const struct ps_story_action preview_actions[] = {
     { PS_STORY_ACTION_END, 0, 0, 0, NULL }
 };
 
+static const struct ps_story_action inventory_preview_actions[] = {
+    { STORY_ACTION_PRESENT_INVENTORY, 0, 0, 0, NULL },
+    { PS_STORY_ACTION_WAIT, 10000, 0, 0, NULL },
+    { PS_STORY_ACTION_END, 0, 0, 0, NULL }
+};
+
+static const struct ps_story_action dialogue_preview_actions[] = {
+    { PS_STORY_ACTION_WAIT, 8, 0, 0, NULL },
+    { PS_STORY_ACTION_SAY, 8, 0, 0,
+      "The rain reached the north field before sunrise. Carry this message to Orin, then follow the lantern road home before the river covers the stepping stones." },
+    { PS_STORY_ACTION_WAIT, 10000, 0, 0, NULL },
+    { PS_STORY_ACTION_END, 0, 0, 0, NULL }
+};
+
 static const struct button_mapping story_context[] = {
     { PLA_CANCEL, BUTTON_MENU, BUTTON_NONE },
     { PLA_EXIT, BUTTON_PLAY, BUTTON_NONE },
@@ -667,6 +755,8 @@ static struct ps_story_director director;
 static int simulator_palette = PALETTE_AUTO;
 static int simulator_itinerary = -1;
 static int simulator_preview_scene = -1;
+static int simulator_inventory_preview;
+static int simulator_dialogue_preview;
 static int frame_number;
 
 static void use_color(unsigned int color)
@@ -718,6 +808,164 @@ static const struct palette *active_palette(const struct tm *now)
     return &night_palette;
 }
 
+static const struct story_item_definition *item_definition(int item_id)
+{
+    int index;
+
+    for (index = 0; index < (int)ARRAYLEN(item_catalog); ++index)
+    {
+        if (item_catalog[index].id == item_id)
+            return &item_catalog[index];
+    }
+    return NULL;
+}
+
+static int inventory_index_for(const struct story_state *state, int item_id)
+{
+    int index;
+
+    for (index = 0; index < ps_inventory_count(&state->inventory); ++index)
+    {
+        const struct ps_inventory_slot *slot =
+            ps_inventory_get(&state->inventory, index);
+
+        if (slot != NULL && slot->item_id == item_id)
+            return index;
+    }
+    return -1;
+}
+
+static int add_story_item(struct story_state *state, int item_id,
+                          int quantity)
+{
+    const struct story_item_definition *definition =
+        item_definition(item_id);
+    int retained;
+    int result;
+
+    state->recent_item_id = 0;
+    if (definition == NULL || quantity <= 0)
+    {
+        state->failure = STORY_FAILURE_INVENTORY_STATE;
+        return 0;
+    }
+    retained = ps_inventory_quantity(&state->inventory, item_id);
+    if (retained > 0 && definition->max_stack == 1)
+        return 1;
+    result = ps_inventory_add(&state->inventory, item_id, quantity,
+                              definition->max_stack);
+    if (result == PS_INVENTORY_OK)
+    {
+        state->recent_item_id = item_id;
+        return 1;
+    }
+    state->failure = result == PS_INVENTORY_FULL ?
+        STORY_FAILURE_INVENTORY_FULL : STORY_FAILURE_INVENTORY_STATE;
+    return 0;
+}
+
+static int consume_story_item(struct story_state *state, int item_id,
+                              int quantity)
+{
+    if (ps_inventory_remove(&state->inventory, item_id, quantity) ==
+        PS_INVENTORY_OK)
+        return 1;
+    state->failure = STORY_FAILURE_INVENTORY_STATE;
+    return 0;
+}
+
+static int start_inventory_presentation(struct story_state *state)
+{
+    int focus;
+
+    if (state->recent_item_id == 0)
+        return PS_STORY_ACTION_DONE;
+    focus = inventory_index_for(state, state->recent_item_id);
+    if (focus < 0)
+    {
+        state->failure = STORY_FAILURE_INVENTORY_STATE;
+        return PS_STORY_ACTION_FAILED;
+    }
+    state->inventory_phase = INVENTORY_PHASE_OPENING;
+    state->inventory_phase_frame = 0;
+    state->inventory_focus = focus;
+    state->inventory_cycle_remaining =
+        ps_inventory_count(&state->inventory) - 1;
+    return PS_STORY_ACTION_PENDING;
+}
+
+static int update_inventory_presentation(struct story_state *state)
+{
+    int count = ps_inventory_count(&state->inventory);
+
+    if (state->inventory_phase == INVENTORY_PHASE_OPENING)
+    {
+        state->inventory_phase_frame++;
+        if (state->inventory_phase_frame >= INVENTORY_OPEN_FRAMES)
+        {
+            state->inventory_phase = INVENTORY_PHASE_HOLD;
+            state->inventory_phase_frame = 0;
+        }
+        return PS_STORY_ACTION_PENDING;
+    }
+    if (state->inventory_phase == INVENTORY_PHASE_HOLD)
+    {
+        state->inventory_phase_frame++;
+        if (state->inventory_phase_frame >= INVENTORY_FOCUS_FRAMES)
+        {
+            state->inventory_phase = state->inventory_cycle_remaining > 0 ?
+                INVENTORY_PHASE_CYCLE : INVENTORY_PHASE_CLOSING;
+            state->inventory_phase_frame = 0;
+        }
+        return PS_STORY_ACTION_PENDING;
+    }
+    if (state->inventory_phase == INVENTORY_PHASE_CYCLE)
+    {
+        state->inventory_phase_frame++;
+        if (state->inventory_phase_frame >= INVENTORY_FOCUS_FRAMES)
+        {
+            state->inventory_phase_frame = 0;
+            if (state->inventory_cycle_remaining > 0 && count > 0)
+            {
+                state->inventory_focus =
+                    (state->inventory_focus + 1) % count;
+                state->inventory_cycle_remaining--;
+            }
+            else
+                state->inventory_phase = INVENTORY_PHASE_CLOSING;
+        }
+        return PS_STORY_ACTION_PENDING;
+    }
+    if (state->inventory_phase == INVENTORY_PHASE_CLOSING)
+    {
+        state->inventory_phase_frame++;
+        if (state->inventory_phase_frame < INVENTORY_OPEN_FRAMES)
+            return PS_STORY_ACTION_PENDING;
+        state->inventory_phase = INVENTORY_PHASE_CLOSED;
+        state->inventory_phase_frame = 0;
+        state->recent_item_id = 0;
+        return PS_STORY_ACTION_DONE;
+    }
+    state->failure = STORY_FAILURE_INVENTORY_STATE;
+    return PS_STORY_ACTION_FAILED;
+}
+
+static void seed_inventory_preview(struct story_state *state)
+{
+    int index;
+
+    ps_inventory_clear(&state->inventory);
+    if (simulator_inventory_preview == 71)
+        return;
+    for (index = 0; index < (int)ARRAYLEN(item_catalog); ++index)
+    {
+        ps_inventory_add(&state->inventory, item_catalog[index].id, 1,
+                         item_catalog[index].max_stack);
+    }
+    state->recent_item_id = ITEM_MINT_SPRIG;
+    state->inventory_focus = inventory_index_for(state, ITEM_MINT_SPRIG);
+}
+
 static void load_simulator_scenario(void)
 {
 #ifdef SIMULATOR
@@ -747,6 +995,19 @@ static void load_simulator_scenario(void)
         simulator_palette = PALETTE_DAY + preview / 7;
         simulator_preview_scene = SCENE_COTTAGE + preview % 7;
     }
+    else if (count >= 70 && count <= 74)
+    {
+        simulator_inventory_preview = count;
+        simulator_preview_scene = count == 72 ? SCENE_HOUSE : SCENE_GREEN;
+        simulator_palette = count == 73 ? PALETTE_EVENING :
+            (count == 74 ? PALETTE_NIGHT : PALETTE_DAY);
+    }
+    else if (count == 75)
+    {
+        simulator_dialogue_preview = 1;
+        simulator_preview_scene = SCENE_GREEN;
+        simulator_palette = PALETTE_DAY;
+    }
 #endif
 }
 
@@ -767,19 +1028,48 @@ static void reset_story(void *context)
         simulator_preview_scene : SCENE_HOUSE;
     state->facing = PS_GRID_DOWN;
     state->walk_distance = 0;
-    state->item_collected = simulator_preview_scene >= 0;
     state->dialogue_frames = 0;
     state->dialogue_speaker = 0;
+    state->dialogue_next_offset = 0;
+    state->dialogue_page = 0;
+    state->dialogue_page_count = 0;
+    state->dialogue_line_one[0] = '\0';
+    state->dialogue_line_two[0] = '\0';
     for (npc = 0; npc < (int)ARRAYLEN(state->npc_facing); ++npc)
         state->npc_facing[npc] = PS_GRID_DOWN;
     state->dialogue_text = NULL;
     state->failure = 0;
+    state->recent_item_id = 0;
+    state->inventory_phase = INVENTORY_PHASE_CLOSED;
+    state->inventory_phase_frame = 0;
+    state->inventory_focus = 0;
+    state->inventory_cycle_remaining = 0;
     state->route.count = 0;
     state->route_index = 0;
     state->route_active = 0;
     state->active_action = -1;
     place_actor(scenes[state->scene].spawn.x,
                 scenes[state->scene].spawn.y);
+    if (simulator_inventory_preview != 0)
+    {
+        seed_inventory_preview(state);
+        if (simulator_inventory_preview == 70)
+            ps_story_init(&director, inventory_preview_actions,
+                          ARRAYLEN(inventory_preview_actions), 0);
+        else
+        {
+            state->inventory_phase = INVENTORY_PHASE_HELD_OPEN;
+            ps_story_init(&director, preview_actions,
+                          ARRAYLEN(preview_actions), 1);
+        }
+        return;
+    }
+    if (simulator_dialogue_preview)
+    {
+        ps_story_init(&director, dialogue_preview_actions,
+                      ARRAYLEN(dialogue_preview_actions), 0);
+        return;
+    }
     if (simulator_preview_scene >= 0)
     {
         ps_story_init(&director, preview_actions, ARRAYLEN(preview_actions), 1);
@@ -870,17 +1160,115 @@ static int update_route(void)
     return 0;
 }
 
+static int measure_dialogue_segment(const char *text, int length,
+                                    void *context)
+{
+    char buffer[96];
+    int width;
+    int height;
+    int index;
+
+    (void)context;
+    if (length <= 0)
+        return 0;
+    if (length >= (int)sizeof(buffer))
+        return LCD_WIDTH + 1;
+    for (index = 0; index < length; ++index)
+        buffer[index] = text[index];
+    buffer[length] = '\0';
+    rb->lcd_getstringsize(buffer, &width, &height);
+    return width;
+}
+
+static void copy_dialogue_span(char *destination, int capacity,
+                               const char *text,
+                               const struct ps_text_span *span)
+{
+    int length = MIN(span->length, capacity - 1);
+    int index;
+
+    for (index = 0; index < length; ++index)
+        destination[index] = text[span->start + index];
+    destination[length] = '\0';
+}
+
+static int dialogue_page_duration(const char *line_one,
+                                  const char *line_two)
+{
+    const char *lines[2] = { line_one, line_two };
+    int characters = 0;
+    int pauses = 0;
+    int line;
+
+    for (line = 0; line < 2; ++line)
+    {
+        int index;
+
+        for (index = 0; lines[line][index] != '\0'; ++index)
+        {
+            char value = lines[line][index];
+
+            characters++;
+            if (value == '.' || value == ',' || value == '!' ||
+                value == '?' || value == ':' || value == ';')
+                pauses++;
+        }
+    }
+    return MAX(DIALOGUE_MIN_PAGE_FRAMES,
+               MIN(100, 28 + characters / 2 + pauses * 3));
+}
+
+static int prepare_dialogue_page(struct story_state *state, int start)
+{
+    struct ps_text_span lines[2];
+    int line_count;
+    int next;
+
+    line_count = ps_text_layout_page(
+        state->dialogue_text, start, LCD_WIDTH - 24,
+        lines, ARRAYLEN(lines), measure_dialogue_segment, NULL, &next);
+    if (line_count <= 0 || next <= start)
+        return 0;
+    copy_dialogue_span(state->dialogue_line_one,
+                       sizeof(state->dialogue_line_one),
+                       state->dialogue_text, &lines[0]);
+    if (line_count > 1)
+        copy_dialogue_span(state->dialogue_line_two,
+                           sizeof(state->dialogue_line_two),
+                           state->dialogue_text, &lines[1]);
+    else
+        state->dialogue_line_two[0] = '\0';
+    state->dialogue_next_offset = next;
+    state->dialogue_frames = dialogue_page_duration(
+        state->dialogue_line_one, state->dialogue_line_two);
+    return 1;
+}
+
 static int start_dialogue(const struct ps_story_action *action)
 {
     static const int npc_columns[8] = { 2, 3, 7, 6, 8, 7, 8, 7 };
     static const int npc_rows[8] = { 4, 5, 6, 6, 6, 6, 5, 7 };
-    int length = rb->strlen(action->text);
+    struct ps_text_span scratch[2];
     int actor_x = body_tile_x(&story.actor);
     int actor_y = body_tile_y(&story.actor);
 
+    if (action->text == NULL || action->text[0] == '\0')
+    {
+        story.failure = STORY_FAILURE_DIALOGUE;
+        return PS_STORY_ACTION_FAILED;
+    }
     story.dialogue_speaker = action->a;
     story.dialogue_text = action->text;
-    story.dialogue_frames = 28 + length / 2;
+    story.dialogue_page = 1;
+    story.dialogue_page_count = ps_text_page_count(
+        action->text, LCD_WIDTH - 24, scratch, ARRAYLEN(scratch),
+        measure_dialogue_segment, NULL);
+    if (story.dialogue_page_count <= 0 ||
+        !prepare_dialogue_page(&story, 0))
+    {
+        story.failure = STORY_FAILURE_DIALOGUE;
+        return PS_STORY_ACTION_FAILED;
+    }
     if (action->a >= 1 && action->a <= 8)
     {
         int npc = action->a - 1;
@@ -902,6 +1290,8 @@ static int handle_story_action(const struct ps_story_action *action,
         state->route_active = 0;
         if (action->kind == PS_STORY_ACTION_SAY)
             return start_dialogue(action);
+        if (action->kind == STORY_ACTION_PRESENT_INVENTORY)
+            return start_inventory_presentation(state);
     }
 
     switch (action->kind)
@@ -929,7 +1319,20 @@ static int handle_story_action(const struct ps_story_action *action,
                 state->dialogue_frames--;
                 return PS_STORY_ACTION_PENDING;
             }
+            if (state->dialogue_text[state->dialogue_next_offset] != '\0')
+            {
+                state->dialogue_page++;
+                if (!prepare_dialogue_page(state,
+                                           state->dialogue_next_offset))
+                {
+                    state->failure = STORY_FAILURE_DIALOGUE;
+                    return PS_STORY_ACTION_FAILED;
+                }
+                return PS_STORY_ACTION_PENDING;
+            }
             state->dialogue_text = NULL;
+            state->dialogue_page = 0;
+            state->dialogue_page_count = 0;
             return PS_STORY_ACTION_DONE;
 
         case PS_STORY_ACTION_COLLECT:
@@ -941,9 +1344,20 @@ static int handle_story_action(const struct ps_story_action *action,
                                                state->facing, 12);
             if (action->a != ITEM_KEY || region != action->b)
                 return PS_STORY_ACTION_FAILED;
-            state->item_collected = 1;
-            return PS_STORY_ACTION_DONE;
+            return add_story_item(state, ITEM_KEY, 1) ?
+                PS_STORY_ACTION_DONE : PS_STORY_ACTION_FAILED;
         }
+
+        case STORY_ACTION_GRANT_ITEM:
+            return add_story_item(state, action->a, action->b) ?
+                PS_STORY_ACTION_DONE : PS_STORY_ACTION_FAILED;
+
+        case STORY_ACTION_CONSUME_ITEM:
+            return consume_story_item(state, action->a, action->b) ?
+                PS_STORY_ACTION_DONE : PS_STORY_ACTION_FAILED;
+
+        case STORY_ACTION_PRESENT_INVENTORY:
+            return update_inventory_presentation(state);
 
         case PS_STORY_ACTION_SCENE:
             if (action->a < 0 || action->a >= (int)ARRAYLEN(scenes))
@@ -1548,7 +1962,7 @@ static void draw_world(const struct palette *p)
         queue_drawable(&drawables, DRAW_NPC,
                        tile_x(2) - 2, 4 * TILE_SIZE - 4,
                        5 * TILE_SIZE - 1, 0);
-        if (!story.item_collected)
+        if (ps_inventory_quantity(&story.inventory, ITEM_KEY) == 0)
             queue_drawable(&drawables, DRAW_ITEM,
                            tile_x(9), 4 * TILE_SIZE,
                            5 * TILE_SIZE - 1, ITEM_KEY);
@@ -1618,53 +2032,35 @@ static void draw_world(const struct palette *p)
     }
 }
 
-static void split_dialogue(const char *text, char *line_one, int one_size,
-                           char *line_two, int two_size)
-{
-    int length = rb->strlen(text);
-    int split = MIN(length, 31);
-    int i;
-
-    if (length > split)
-    {
-        for (i = split; i > 12; --i)
-        {
-            if (text[i] == ' ')
-            {
-                split = i;
-                break;
-            }
-        }
-    }
-    rb->strlcpy(line_one, text, MIN(one_size, split + 1));
-    while (text[split] == ' ')
-        split++;
-    rb->strlcpy(line_two, text + split, two_size);
-}
-
 static void draw_dialogue(const struct palette *p)
 {
     static const char *speakers[] = {
         "LUMA", "MIRA", "TOVIN", "EDA", "BRAN", "SERA", "ROWAN",
         "ORIN", "NEL"
     };
-    char line_one[36];
-    char line_two[36];
+    char page_text[9];
+    int page_width;
+    int page_height;
     int y = LCD_HEIGHT - 47;
 
     if (story.dialogue_text == NULL)
         return;
-    split_dialogue(story.dialogue_text, line_one, sizeof(line_one),
-                   line_two, sizeof(line_two));
     use_color(p->box);
     rb->lcd_fillrect(5, y, LCD_WIDTH - 10, 43);
     use_color(p->light);
     rb->lcd_drawrect(6, y + 1, LCD_WIDTH - 12, 41);
     use_color(p->accent);
     rb->lcd_putsxy(12, y + 4, speakers[story.dialogue_speaker]);
+    if (story.dialogue_page_count > 1)
+    {
+        rb->snprintf(page_text, sizeof(page_text), "%d/%d",
+                     story.dialogue_page, story.dialogue_page_count);
+        rb->lcd_getstringsize(page_text, &page_width, &page_height);
+        rb->lcd_putsxy(LCD_WIDTH - 12 - page_width, y + 4, page_text);
+    }
     use_color(p->text);
-    rb->lcd_putsxy(12, y + 16, line_one);
-    rb->lcd_putsxy(12, y + 27, line_two);
+    rb->lcd_putsxy(12, y + 16, story.dialogue_line_one);
+    rb->lcd_putsxy(12, y + 27, story.dialogue_line_two);
     if ((frame_number / 8) & 1)
     {
         use_color(p->accent);
@@ -1674,30 +2070,165 @@ static void draw_dialogue(const struct palette *p)
 
 static void draw_status(const struct palette *p)
 {
-    char item_text[9];
+    char count_text[7];
+
+    rb->snprintf(count_text, sizeof(count_text), "%02d/12",
+                 ps_inventory_count(&story.inventory));
+    use_color(p->box);
+    rb->lcd_fillrect(3, 3, 53, 20);
+    use_color(p->light);
+    rb->lcd_drawrect(4, 4, 51, 18);
+    rb->lcd_bitmap_transparent((const fb_data *)story_inventory_satchel,
+                               5, 5, 16, 16);
+    use_color(p->text);
+    rb->lcd_putsxy(23, 7, count_text);
+}
+
+static void draw_inventory_panel(const struct palette *p)
+{
+    const int target_x = 8;
+    const int target_y = 8;
+    const int target_width = 204;
+    const int target_height = 160;
+    int progress = INVENTORY_OPEN_FRAMES;
+    int x;
+    int y;
     int width;
     int height;
+    int index;
+    int count;
+    char count_text[7];
 
-    rb->snprintf(item_text, sizeof(item_text), "KEY:%s",
-                 story.item_collected ? "YES" : "--");
-    rb->lcd_getstringsize(item_text, &width, &height);
+    if (story.inventory_phase == INVENTORY_PHASE_CLOSED)
+        return;
+    if (story.inventory_phase == INVENTORY_PHASE_OPENING)
+        progress = story.inventory_phase_frame;
+    else if (story.inventory_phase == INVENTORY_PHASE_CLOSING)
+        progress = INVENTORY_OPEN_FRAMES - story.inventory_phase_frame;
+    progress = MAX(1, MIN(INVENTORY_OPEN_FRAMES, progress));
+    x = 3 + (target_x - 3) * progress / INVENTORY_OPEN_FRAMES;
+    y = 3 + (target_y - 3) * progress / INVENTORY_OPEN_FRAMES;
+    width = 53 + (target_width - 53) * progress / INVENTORY_OPEN_FRAMES;
+    height = 20 + (target_height - 20) * progress / INVENTORY_OPEN_FRAMES;
     use_color(p->box);
-    rb->lcd_fillrect(3, 3, width + 7, height + 4);
-    use_color(story.item_collected ? p->accent : p->text);
-    rb->lcd_putsxy(6, 5, item_text);
+    rb->lcd_fillrect(x, y, width, height);
+    use_color(p->light);
+    rb->lcd_drawrect(x + 1, y + 1, width - 2, height - 2);
+    use_color(p->accent);
+    rb->lcd_drawrect(x + 3, y + 3, width - 6, height - 6);
+    if (progress < INVENTORY_OPEN_FRAMES)
+        return;
+
+    count = ps_inventory_count(&story.inventory);
+    rb->snprintf(count_text, sizeof(count_text), "%02d/12", count);
+    use_color(p->text);
+    rb->lcd_putsxy(15, 14, "SATCHEL");
+    use_color(p->accent);
+    rb->lcd_putsxy(171, 14, count_text);
+    use_color(p->mid);
+    rb->lcd_fillrect(14, 27, 190, 2);
+
+    for (index = 0; index < INVENTORY_CAPACITY; ++index)
+    {
+        const struct ps_inventory_slot *slot =
+            ps_inventory_get(&story.inventory, index);
+        int cell_x = 14 + (index % 4) * 28;
+        int cell_y = 33 + (index / 4) * 28;
+        int focused = index == story.inventory_focus && slot != NULL;
+
+        use_color(focused && ((frame_number / 5) & 1) ?
+                  p->accent : p->dark);
+        rb->lcd_fillrect(cell_x, cell_y, 26, 26);
+        use_color(focused ? p->light : p->mid);
+        rb->lcd_drawrect(cell_x + 1, cell_y + 1, 24, 24);
+        if (slot != NULL)
+        {
+            const struct story_item_definition *definition =
+                item_definition(slot->item_id);
+            if (definition != NULL)
+                rb->lcd_bitmap_transparent(
+                    (const fb_data *)definition->icon,
+                    cell_x + 5, cell_y + 5, 16, 16);
+        }
+        else
+        {
+            use_color(p->mid);
+            rb->lcd_drawrect(cell_x + 8, cell_y + 8, 10, 10);
+        }
+    }
+
+    use_color(p->dark);
+    rb->lcd_fillrect(130, 33, 74, 82);
+    use_color(p->mid);
+    rb->lcd_drawrect(131, 34, 72, 80);
+    if (count > 0)
+    {
+        const struct ps_inventory_slot *slot =
+            ps_inventory_get(&story.inventory, story.inventory_focus);
+        const struct story_item_definition *definition = slot == NULL ?
+            NULL : item_definition(slot->item_id);
+        char quantity[8];
+
+        if (slot != NULL && definition != NULL)
+        {
+            rb->lcd_bitmap_transparent((const fb_data *)definition->icon,
+                                       135, 39, 16, 16);
+            rb->snprintf(quantity, sizeof(quantity), "x%d", slot->quantity);
+            use_color(p->accent);
+            rb->lcd_putsxy(157, 42, quantity);
+            use_color(p->light);
+            rb->lcd_putsxy(132, 60, definition->name);
+            use_color(p->text);
+            rb->lcd_putsxy(134, 77, definition->line_one);
+            rb->lcd_putsxy(134, 89, definition->line_two);
+        }
+    }
+    else
+    {
+        use_color(p->mid);
+        rb->lcd_putsxy(143, 59, "EMPTY");
+        use_color(p->text);
+        rb->lcd_putsxy(134, 78, "Find a small");
+        rb->lcd_putsxy(134, 90, "thing worth");
+        rb->lcd_putsxy(134, 102, "keeping.");
+    }
+    use_color(p->mid);
+    rb->lcd_fillrect(14, 122, 190, 1);
+    use_color(p->text);
+    rb->lcd_putsxy(15, 130, "A SMALL RECORD OF THE ROAD");
+    use_color(p->mid);
+    rb->lcd_putsxy(15, 145, "12 POCKETS / SESSION MEMORY");
 }
 
 static void draw_failure(const struct palette *p)
 {
+    const char *title = "STORY ROUTE HALTED";
+    const char *detail = "Check authored destination.";
+
     if (!story.failure && director.state != PS_STORY_FAILED)
         return;
+    if (story.failure == STORY_FAILURE_INVENTORY_FULL)
+    {
+        title = "SATCHEL FULL";
+        detail = "Reward was not stored.";
+    }
+    else if (story.failure == STORY_FAILURE_INVENTORY_STATE)
+    {
+        title = "ITEM STATE ERROR";
+        detail = "Inventory action failed.";
+    }
+    else if (story.failure == STORY_FAILURE_DIALOGUE)
+    {
+        title = "DIALOGUE ERROR";
+        detail = "Text page could not be laid out.";
+    }
     use_color(p->box);
     rb->lcd_fillrect(12, 65, LCD_WIDTH - 24, 45);
     use_color(p->accent);
     rb->lcd_drawrect(13, 66, LCD_WIDTH - 26, 43);
-    rb->lcd_putsxy(22, 75, "STORY ROUTE HALTED");
+    rb->lcd_putsxy(22, 75, title);
     use_color(p->text);
-    rb->lcd_putsxy(22, 89, "Check authored destination.");
+    rb->lcd_putsxy(22, 89, detail);
 }
 
 static void cleanup(void)
@@ -1738,6 +2269,9 @@ enum plugin_status plugin_start(const void *parameter)
         !ps_scene_props_valid(village_props, ARRAYLEN(village_props),
                               scenes, ARRAYLEN(scenes)))
         return PLUGIN_ERROR;
+    if (!ps_inventory_init(&story.inventory, story.inventory_slots,
+                           ARRAYLEN(story.inventory_slots)))
+        return PLUGIN_ERROR;
     reset_story(&story);
 
     while (!quit)
@@ -1751,6 +2285,7 @@ enum plugin_status plugin_start(const void *parameter)
         draw_world(p);
         draw_dialogue(p);
         draw_status(p);
+        draw_inventory_panel(p);
         draw_failure(p);
         rb->lcd_update();
 

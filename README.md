@@ -18,6 +18,8 @@ Optional modules add fixed-memory tile routing, facing interaction probes,
 completion-driven autonomous sequences, stable foot-Y draw ordering,
 directional sprite animation, caller-owned scene descriptions, passable
 edge-to-edge scene transitions, relative facing, and stateless tile variation.
+The newer modules add stable fixed-capacity inventories and renderer-measured
+word wrapping with pagination.
 Story Clock uses the full top-down set for its vignette.
 
 Run its host tests without booting Rockbox.
@@ -102,7 +104,15 @@ The program uses caller-owned breadth-first-search storage, fixed-point motion
 between tile centers, a small foot collider, shared foot-Y depth sorting,
 directional animation selection, NPC conversation facing, standard
 opposite-edge scene entry, doorway-specific scene spawns, two-line
-automatically timed dialogue, and an inventory indicator.
+automatically timed dialogue, and a twelve-slot session inventory. The Ember
+Key is a temporary quest item consumed at the beacon. Five district keepsakes
+remain in stable order across autonomous story-loop resets until the plugin
+closes. New rewards briefly open a palette-aware 4x3 satchel overlay; repeated
+districts suppress both the duplicate item and duplicate presentation.
+Dialogue measures the actual Rockbox font, wraps at word boundaries, and
+paginates text that needs more than two lines. Each page stays visible based
+on its character count and punctuation, with a page indicator when more text
+follows.
 Rockbox time remains hidden and controls the outdoor day, evening, and night
 palette. The map and collision cells remain unchanged between palettes.
 Simulator-only scenario files can force a palette for deterministic review.
@@ -193,8 +203,12 @@ sheet with:
 ```
 
 `Scenario` can be `auto`, `day`, `evening`, `night`, `market`, `mill`, `gate`,
-`farm`, or `garden`. The district choices force one complete itinerary with the
-day palette.
+`farm`, `garden`, `inventory`, `inventory-empty`, or `dialogue`. The district
+choices force one complete itinerary with the day palette. `inventory` records a full
+opening, deterministic focus cycle, and closing; `inventory-empty` holds the
+empty grid open for review.
+The `dialogue` scenario runs a deliberately long three-page conversation to
+review wrapping, page timing, and the page counter.
 The MP4 is written to `artifacts/video`; its 4×3 review sheet is under
 `artifacts/screenshots/storyclock`.
 
@@ -206,6 +220,15 @@ Capture all seven exterior screens at native iPod resolution in every palette:
 
 This writes the individual 220×176 frames and the day, evening, and night
 review sheets under `artifacts/screenshots/storyclock/village`.
+
+Capture the inventory indoors and over the day, evening, and night palettes:
+
+```powershell
+.\scripts\Capture-StoryClockInventory.ps1
+```
+
+The command also captures the empty state. Native 220×176 PNGs are written
+under `artifacts/screenshots/storyclock/inventory`.
 
 The captures go under `artifacts/screenshots`. The repository ignores that
 directory because recordings and device builds are local products.
@@ -228,9 +251,9 @@ This creates:
 - `artifacts/device/mushroomclock-ipodcolor-rockbox-4.0.rock` is the standalone
   Mushroom Clock plugin for Rockbox 4.0.
 - `artifacts/device/storyclock-ipodcolor-rockbox-4.0.rock` is the standalone
-  Story Clock plugin for Rockbox 4.0. The expanded eight-scene build is 499,268
-  bytes; its SHA-256 is
-  `5e44128ef7972f583ccf2410e56e320d59396cd8efe48952453972913266ebe8`.
+  Story Clock plugin for Rockbox 4.0. The inventory and dialogue-paging build
+  is 508,208 bytes; its SHA-256 is
+  `d6ddf501da947a8f711f59a4e494158b2a35acb8a76b650575fec8f568a749ed`.
 - `artifacts/device/rockbox-ipodcolor-4.0-official-plus-clocks.zip` is official
   Rockbox 4.0 with all three clock plugins added.
 - `artifacts/device/rockbox-chronolith.ipod` is the firmware binary.

@@ -82,6 +82,47 @@ for capacity and when prioritized insertion replaces a retained record.
 `ps_draw_list_clear` resets both the record count and discard count for the next
 frame. Invalid calls do not change the diagnostic.
 
+## Fixed-capacity inventory
+
+`pocketstep_inventory.h` stores item IDs and quantities in caller-owned slots.
+New item types append in acquisition order. Adding an existing type changes its
+quantity without moving it. Removing a complete stack compacts later slots to
+keep iteration stable and hole-free.
+
+```c
+#define POCKETSTEP_INVENTORY_IMPLEMENTATION
+#include "pocketstep_inventory.h"
+
+struct ps_inventory_slot slots[12];
+struct ps_inventory inventory;
+
+ps_inventory_init(&inventory, slots, 12);
+ps_inventory_add(&inventory, EMBER_KEY, 1, 1);
+ps_inventory_add(&inventory, POTION, 3, 99);
+```
+
+Add and remove operations are atomic. Invalid arguments, a full inventory, a
+stack-limit violation, or excessive removal leave every slot unchanged and
+return a distinct result code. A full inventory can still add quantity to an
+existing stack when the supplied maximum allows it.
+
+```c
+const struct ps_inventory_slot *slot;
+
+for (i = 0; i < ps_inventory_count(&inventory); ++i)
+{
+    slot = ps_inventory_get(&inventory, i);
+    draw_item(slot->item_id, slot->quantity);
+}
+
+if (ps_inventory_quantity(&inventory, EMBER_KEY) != 0)
+    unlock_beacon();
+```
+
+The module stores no item names, icons, categories, or gameplay rules. The
+application owns those details. Storage costs two integers per slot plus the
+three-integer inventory record; it allocates no memory and performs no I/O.
+
 ## Directional animation
 
 `pocketstep_anim.h` maps four facing directions to sprite-sheet rows and picks
@@ -192,6 +233,25 @@ the actor moves between cell centers. Dialogue and collection cannot start
 early because the director advances only after the walk callback reports
 completion. If a destination has no route, the callback fails and the
 application keeps a visible diagnostic on screen instead of crossing a wall.
+
+## Measured text pages
+
+`pocketstep_text.h` wraps text using widths reported by the host renderer. It
+returns caller-owned spans into the original string, so it needs no heap and
+does not copy text. The application chooses the pixel width and number of
+lines per page.
+
+```c
+struct ps_text_span lines[2];
+int next;
+int count = ps_text_layout_page(text, 0, 196, lines, 2,
+                                measure_text, font, &next);
+```
+
+Wrapping prefers word boundaries, honors explicit newlines, and splits a word
+only when that word is wider than an empty line. `ps_text_page_count` uses the
+same measurement callback, which lets a dialogue box show an accurate page
+indicator before playback starts.
 
 ## Scene descriptions
 

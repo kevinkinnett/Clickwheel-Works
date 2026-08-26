@@ -1,0 +1,13 @@
+Generator: OpenAI built-in image generation
+Date: 2026-08-26
+License: Project-owned generated artwork
+
+Use case: stylized-concept
+Asset type: source artwork for a 16 by 16 JRPG inventory icon
+Primary request: one small closed adventurer satchel, warm brown leather with a short flap, tiny gold buckle, and a compact rounded-square silhouette
+Scene/backdrop: genuinely transparent background
+Style/medium: crisp 16-bit pixel art, hard square pixel clusters, limited palette, no antialiasing
+Composition/framing: single object centered with generous transparent margin, straight-on three-quarter view, readable when reduced to 16 by 16 pixels
+Color palette: dark plum outline, brown and ochre leather, one muted gold buckle highlight
+Constraints: exactly one satchel; transparent background; no cast shadow; no text; no border; no watermark; no extra objects
+Avoid: photorealism, gradients, soft edges, excessive detail, open bag, coins, weapons
