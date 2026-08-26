@@ -74,11 +74,113 @@ static void test_variation(void)
     assert(changed);
 }
 
+static void test_edge_entry(void)
+{
+    static const unsigned char edge_tiles[25] = { 0 };
+    static const unsigned char edge_blocked[25] = {
+        1, 1, 1, 1, 1,
+        1, 0, 1, 0, 1,
+        1, 0, 0, 0, 1,
+        1, 0, 0, 0, 1,
+        1, 1, 1, 1, 1
+    };
+    struct ps_scene scene = {
+        5, 5, edge_tiles, { 5, 5, edge_blocked },
+        0, 0, { 2, 2 }, 7
+    };
+    struct ps_grid_cell entry;
+
+    assert(ps_scene_edge_entry(&scene, PS_GRID_DOWN, 2, &entry));
+    assert(entry.x == 1 && entry.y == 1);
+    assert(ps_scene_edge_entry(&scene, PS_GRID_UP, 2, &entry));
+    assert(entry.x == 2 && entry.y == 3);
+    assert(ps_scene_edge_entry(&scene, PS_GRID_RIGHT, 2, &entry));
+    assert(entry.x == 1 && entry.y == 2);
+    assert(ps_scene_edge_entry(&scene, PS_GRID_LEFT, 2, &entry));
+    assert(entry.x == 3 && entry.y == 2);
+    assert(!ps_scene_edge_entry(&scene, 9, 2, &entry));
+}
+
+static void test_scene_links(void)
+{
+    static const unsigned char link_tiles[25] = { 0 };
+    static const unsigned char link_blocked[25] = {
+        1,1,1,1,1, 1,0,1,0,1, 1,0,0,0,1,
+        1,0,0,0,1, 1,1,1,1,1
+    };
+    static const struct ps_scene link_scenes[2] = {
+        { 5,5,link_tiles,{5,5,link_blocked},0,0,{2,2},1 },
+        { 5,5,link_tiles,{5,5,link_blocked},0,0,{2,2},2 }
+    };
+    struct ps_scene_link links[2] = {
+        { 0, PS_GRID_DOWN, 1, 2 },
+        { 1, PS_GRID_UP, 0, 2 }
+    };
+    struct ps_grid_cell entry;
+    int target = -1;
+
+    assert(ps_scene_links_valid(links, 2, link_scenes, 2));
+    assert(ps_scene_link_find(links, 2, 0, PS_GRID_DOWN) == &links[0]);
+    assert(!ps_scene_link_find(links, 2, 0, PS_GRID_LEFT));
+    assert(ps_scene_link_follow(links, 2, link_scenes, 2,
+                                0, PS_GRID_DOWN, &target, &entry));
+    assert(target == 1 && entry.x == 1 && entry.y == 1);
+    assert(ps_scene_links_reciprocal(links, 2, link_scenes, 2));
+    links[1].preferred_offset = 1;
+    assert(!ps_scene_links_reciprocal(links, 2, link_scenes, 2));
+    links[1].preferred_offset = 2;
+    links[0].target_scene = 3;
+    assert(!ps_scene_links_valid(links, 2, link_scenes, 2));
+    links[0].target_scene = 1;
+    links[1] = links[0];
+    assert(!ps_scene_links_valid(links, 2, link_scenes, 2));
+}
+
+static void test_entrances_and_props(void)
+{
+    static const unsigned char entrance_tiles[9] = { 0 };
+    static const unsigned char entrance_blocked[9] = {
+        1,1,1, 1,0,1, 1,1,1
+    };
+    static const struct ps_region entrance_regions[1] = {
+        { { 8, 8, 8, 8 }, 20 }
+    };
+    static const struct ps_scene entrance_scenes[2] = {
+        { 3,3,entrance_tiles,{3,3,entrance_blocked},
+          entrance_regions,1,{1,1},1 },
+        { 3,3,entrance_tiles,{3,3,entrance_blocked},0,0,{1,1},2 }
+    };
+    struct ps_scene_entrance entrances[1] = {
+        { 0, 20, PS_SCENE_NO_DESTINATION, { 0, 0 }, PS_GRID_UP }
+    };
+    struct ps_scene_prop props[1] = {
+        { 0, 0, 0, 15, 7, PS_SCENE_PROP_SOLID }
+    };
+
+    assert(ps_scene_entrances_valid(entrances, 1, entrance_scenes, 2));
+    assert(ps_scene_entrance_find(entrances, 1, 0, 20) == &entrances[0]);
+    entrances[0].target_scene = 1;
+    entrances[0].spawn.x = 1;
+    entrances[0].spawn.y = 1;
+    assert(ps_scene_entrances_valid(entrances, 1, entrance_scenes, 2));
+    entrances[0].spawn.x = 0;
+    assert(!ps_scene_entrances_valid(entrances, 1, entrance_scenes, 2));
+    assert(ps_scene_props_valid(props, 1, entrance_scenes, 2));
+    props[0].column = 1;
+    props[0].row = 1;
+    assert(!ps_scene_props_valid(props, 1, entrance_scenes, 2));
+    props[0].flags = 2;
+    assert(!ps_scene_props_valid(props, 1, entrance_scenes, 2));
+}
+
 int main(void)
 {
     test_scene_validation();
     test_grid_compatibility();
     test_variation();
+    test_edge_entry();
+    test_scene_links();
+    test_entrances_and_props();
     puts("PocketStep scene tests passed");
     return 0;
 }

@@ -23,6 +23,36 @@
       "creator": "Kenney",
       "source": "https://kenney.nl/assets/tiny-town",
       "license": "CC0 1.0"
+    },
+    {
+      "creator": "Luis Zuno (Ansimuz)",
+      "source": "https://opengameart.org/content/rpg-town-pixel-art-assets",
+      "license": "CC0 1.0"
+    },
+    {
+      "creator": "Pixelandbeans",
+      "source": "https://opengameart.org/content/cottage-core-bedroom-furniture-set",
+      "license": "CC BY 4.0"
+    },
+    {
+      "creator": "Kevin Kinnett and OpenAI",
+      "source": "OpenAI built-in image generation, August 2026",
+      "license": "Project-owned generated artwork"
+    },
+    {
+      "creator": "josehzz",
+      "source": "https://opengameart.org/content/farming-crops-16x16",
+      "license": "CC0 1.0"
+    },
+    {
+      "creator": "Proyd",
+      "source": "https://opengameart.org/content/chicken-and-pen",
+      "license": "CC0 1.0"
+    },
+    {
+      "creator": "nightowl, Momentmal, and Jordan Irwin (AntumDeluge)",
+      "source": "https://opengameart.org/content/anvil-2",
+      "license": "CC0 1.0"
     }
   ],
   "sources": {
@@ -39,7 +69,21 @@
     "flower": { "path": "third-party/kenney-tiny-town/tile_0002.png" },
     "tree_top": { "path": "third-party/kenney-tiny-town/tile_0004.png" },
     "tree_bottom": { "path": "third-party/kenney-tiny-town/tile_0016.png" },
-    "path": { "path": "third-party/kenney-tiny-town/tile_0043.png" }
+    "path": { "path": "third-party/kenney-tiny-town/tile_0043.png" },
+    "cottage_core": { "path": "third-party/pixelandbeans-cottage-core/cottage_core.png" },
+    "rpg_town": { "path": "third-party/ansimuz-rpg-town/transparent-bg-tiles.png" },
+    "outdoor_generated": { "path": "outdoor-generated-v1.png" },
+    "room_architecture": { "path": "room-architecture-generated-v1.png" },
+    "village_house": { "path": "village-house-generated-v1.png" },
+    "village_green": { "path": "village-green-generated-v1.png" },
+    "river_mill": { "path": "river-mill-generated-v1.png" },
+    "mill_wheel_animation": { "path": "mill-wheel-animation-generated-v1.png" },
+    "market_row": { "path": "market-row-generated-v1.png" },
+    "south_gate": { "path": "south-gate-generated-v1.png" },
+    "village_well": { "path": "village-well-generated-v1.png" },
+    "farming_crops": { "path": "third-party/josehzz-farming-crops/Crop_Spritesheet.png" },
+    "chicken_pen": { "path": "third-party/proyd-chicken-pen/chicken.png" },
+    "anvil": { "path": "third-party/antumdeluge-anvil/anvil-16x16-black.png" }
   },
   "assets": [
     {
@@ -49,7 +93,11 @@
     {
       "name": "floor_base",
       "emit": false,
-      "operations": [{ "op": "source", "source": "floor" }]
+      "operations": [
+        { "op": "source", "source": "room_architecture" },
+        { "op": "crop", "rect": [82, 118, 306, 301] },
+        { "op": "resize", "size": [16, 16] }
+      ]
     },
     {
       "name": "floor_horizontal",
@@ -80,27 +128,63 @@
       }]
     },
     {
-      "name": "grass_detail_horizontal",
+      "name": "generated_grass_base",
       "emit": false,
       "operations": [
-        { "op": "source", "source": "grass_detail" },
+        { "op": "source", "source": "outdoor_generated" },
+        { "op": "crop", "rect": [77, 69, 339, 345] },
+        { "op": "resize", "size": [16, 16] }
+      ]
+    },
+    {
+      "name": "generated_grass_horizontal",
+      "emit": false,
+      "operations": [
+        { "op": "asset", "asset": "generated_grass_base" },
         { "op": "flip", "axis": "horizontal" }
       ]
     },
     {
-      "name": "grass_detail_vertical",
+      "name": "generated_grass_vertical",
       "emit": false,
       "operations": [
-        { "op": "source", "source": "grass_detail" },
+        { "op": "asset", "asset": "generated_grass_base" },
         { "op": "flip", "axis": "vertical" }
       ]
     },
     {
-      "name": "path_horizontal",
+      "name": "generated_grass_both",
       "emit": false,
       "operations": [
-        { "op": "source", "source": "path" },
-        { "op": "flip", "axis": "horizontal" }
+        { "op": "asset", "asset": "generated_grass_base" },
+        { "op": "flip", "axis": "horizontal" },
+        { "op": "flip", "axis": "vertical" }
+      ]
+    },
+    {
+      "name": "generated_path_vertical",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "outdoor_generated" },
+        { "op": "crop", "rect": [888, 68, 346, 346] },
+        { "op": "resize", "size": [16, 16] }
+      ]
+    },
+    {
+      "name": "generated_path_horizontal",
+      "emit": false,
+      "operations": [
+        { "op": "asset", "asset": "generated_path_vertical" },
+        { "op": "rotate", "degrees": 90 }
+      ]
+    },
+    {
+      "name": "generated_path_intersection",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "outdoor_generated" },
+        { "op": "crop", "rect": [974, 152, 174, 174] },
+        { "op": "resize", "size": [16, 16] }
       ]
     },
     {
@@ -109,14 +193,14 @@
         "op": "assemble",
         "size": [64, 32],
         "layers": [
-          { "source": "grass", "at": [0, 0] },
-          { "source": "grass_detail", "at": [16, 0] },
-          { "asset": "grass_detail_horizontal", "at": [32, 0] },
-          { "asset": "grass_detail_vertical", "at": [48, 0] },
-          { "source": "path", "at": [0, 16] },
-          { "asset": "path_horizontal", "at": [16, 16] },
-          { "source": "path", "at": [32, 16] },
-          { "asset": "path_horizontal", "at": [48, 16] }
+          { "asset": "generated_grass_base", "at": [0, 0] },
+          { "asset": "generated_grass_horizontal", "at": [16, 0] },
+          { "asset": "generated_grass_vertical", "at": [32, 0] },
+          { "asset": "generated_grass_both", "at": [48, 0] },
+          { "asset": "generated_path_vertical", "at": [0, 16] },
+          { "asset": "generated_path_horizontal", "at": [16, 16] },
+          { "asset": "generated_path_intersection", "at": [32, 16] },
+          { "asset": "generated_path_vertical", "at": [48, 16] }
         ]
       }],
       "variants": [
@@ -151,8 +235,48 @@
       "operations": [{ "op": "source", "source": "rug" }]
     },
     {
+      "name": "story_wall_trim_h",
+      "operations": [
+        { "op": "source", "source": "room_architecture" },
+        { "op": "crop", "rect": [850, 272, 304, 151] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 20 },
+        { "op": "resize", "size": [16, 8] }
+      ]
+    },
+    {
+      "name": "story_wall_trim_v",
+      "operations": [
+        { "op": "source", "source": "room_architecture" },
+        { "op": "crop", "rect": [1280, 112, 99, 313] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 20 },
+        { "op": "resize", "size": [8, 16] }
+      ]
+    },
+    {
+      "name": "story_window",
+      "operations": [
+        { "op": "source", "source": "room_architecture" },
+        { "op": "crop", "rect": [463, 560, 285, 267] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 20 },
+        { "op": "resize", "size": [28, 28] }
+      ]
+    },
+    {
+      "name": "story_fireplace",
+      "operations": [
+        { "op": "source", "source": "room_architecture" },
+        { "op": "crop", "rect": [819, 565, 320, 290] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 20 },
+        { "op": "resize", "size": [32, 28] }
+      ]
+    },
+    {
       "name": "story_water",
-      "operations": [{ "op": "source", "source": "water" }],
+      "operations": [
+        { "op": "source", "source": "outdoor_generated" },
+        { "op": "crop", "rect": [1301, 68, 338, 347] },
+        { "op": "resize", "size": [16, 16] }
+      ],
       "variants": [
         { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
         { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
@@ -185,29 +309,67 @@
     {
       "name": "story_bed",
       "operations": [
-        { "op": "source", "source": "objects" },
-        { "op": "crop", "rect": [192, 0, 32, 32] },
-        { "op": "color_key", "color": [255, 255, 255], "tolerance": 10 }
+        { "op": "source", "source": "cottage_core" },
+        { "op": "crop", "rect": [0, 0, 53, 62] },
+        { "op": "resize", "size": [40, 42] }
       ]
     },
     {
       "name": "story_bookshelf",
       "operations": [
-        { "op": "source", "source": "objects" },
-        { "op": "crop", "rect": [160, 32, 32, 32] },
-        { "op": "color_key", "color": [255, 255, 255], "tolerance": 10 }
+        { "op": "source", "source": "cottage_core" },
+        { "op": "crop", "rect": [54, 0, 33, 52] },
+        { "op": "resize", "size": [28, 42] }
+      ]
+    },
+    {
+      "name": "story_hanging_plant",
+      "operations": [
+        { "op": "source", "source": "cottage_core" },
+        { "op": "crop", "rect": [88, 0, 18, 45] },
+        { "op": "resize", "size": [16, 32] }
+      ]
+    },
+    {
+      "name": "story_wall_mirror",
+      "operations": [
+        { "op": "source", "source": "cottage_core" },
+        { "op": "crop", "rect": [107, 2, 26, 42] },
+        { "op": "resize", "size": [18, 28] }
+      ]
+    },
+    {
+      "name": "story_floor_lamp",
+      "operations": [
+        { "op": "source", "source": "cottage_core" },
+        { "op": "crop", "rect": [188, 0, 19, 31] },
+        { "op": "resize", "size": [16, 28] }
+      ]
+    },
+    {
+      "name": "story_writing_desk",
+      "operations": [
+        { "op": "source", "source": "cottage_core" },
+        { "op": "crop", "rect": [187, 29, 41, 35] },
+        { "op": "resize", "size": [36, 28] }
+      ]
+    },
+    {
+      "name": "story_stool",
+      "operations": [
+        { "op": "source", "source": "cottage_core" },
+        { "op": "crop", "rect": [157, 32, 22, 30] },
+        { "op": "resize", "size": [16, 20] }
       ]
     },
     {
       "name": "story_tree",
-      "operations": [{
-        "op": "assemble",
-        "size": [16, 32],
-        "layers": [
-          { "source": "tree_top", "at": [0, 0] },
-          { "source": "tree_bottom", "at": [0, 16] }
-        ]
-      }],
+      "operations": [
+        { "op": "source", "source": "outdoor_generated" },
+        { "op": "crop", "rect": [1320, 450, 285, 415] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 18 },
+        { "op": "resize", "size": [24, 36] }
+      ],
       "variants": [
         { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
         { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
@@ -217,15 +379,411 @@
     {
       "name": "story_door",
       "operations": [
-        { "op": "source", "source": "objects" },
-        { "op": "crop", "rect": [224, 224, 32, 32] },
-        { "op": "color_key", "color": [255, 255, 255], "tolerance": 10 },
-        { "op": "resize", "size": [16, 16] }
+        { "op": "source", "source": "room_architecture" },
+        { "op": "crop", "rect": [78, 526, 330, 331] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 20 },
+        { "op": "resize", "size": [32, 32] }
       ]
     },
     {
       "name": "story_flower",
-      "operations": [{ "op": "source", "source": "flower" }],
+      "operations": [
+        { "op": "source", "source": "outdoor_generated" },
+        { "op": "crop", "rect": [105, 530, 260, 285] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 18 },
+        { "op": "resize", "size": [16, 16] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_shrub",
+      "operations": [
+        { "op": "source", "source": "outdoor_generated" },
+        { "op": "crop", "rect": [505, 520, 285, 285] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 18 },
+        { "op": "resize", "size": [16, 16] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_rock",
+      "operations": [
+        { "op": "source", "source": "outdoor_generated" },
+        { "op": "crop", "rect": [920, 585, 270, 240] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 18 },
+        { "op": "resize", "size": [16, 16] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_village_house",
+      "operations": [
+        { "op": "source", "source": "village_house" },
+        { "op": "crop", "rect": [246, 135, 930, 844] },
+        { "op": "color_key", "color": [255, 0, 255], "tolerance": 70 },
+        { "op": "resize", "size": [96, 72] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_town_fence",
+      "operations": [
+        { "op": "source", "source": "rpg_town" },
+        { "op": "crop", "rect": [0, 16, 48, 16] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "chicken_pen_top_left",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "chicken_pen" },
+        { "op": "crop", "rect": [0, 80, 16, 16] }
+      ]
+    },
+    {
+      "name": "chicken_pen_top",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "chicken_pen" },
+        { "op": "crop", "rect": [16, 80, 16, 16] }
+      ]
+    },
+    {
+      "name": "chicken_pen_top_right",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "chicken_pen" },
+        { "op": "crop", "rect": [32, 80, 16, 16] }
+      ]
+    },
+    {
+      "name": "chicken_pen_left",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "chicken_pen" },
+        { "op": "crop", "rect": [0, 96, 16, 16] }
+      ]
+    },
+    {
+      "name": "chicken_pen_right",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "chicken_pen" },
+        { "op": "crop", "rect": [32, 96, 16, 16] }
+      ]
+    },
+    {
+      "name": "chicken_pen_bottom_left",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "chicken_pen" },
+        { "op": "crop", "rect": [0, 112, 16, 16] }
+      ]
+    },
+    {
+      "name": "chicken_pen_bottom",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "chicken_pen" },
+        { "op": "crop", "rect": [16, 112, 16, 16] }
+      ]
+    },
+    {
+      "name": "chicken_pen_bottom_right",
+      "emit": false,
+      "operations": [
+        { "op": "source", "source": "chicken_pen" },
+        { "op": "crop", "rect": [32, 112, 16, 16] }
+      ]
+    },
+    {
+      "name": "story_chicken_pen",
+      "operations": [{
+        "op": "assemble",
+        "size": [48, 48],
+        "layers": [
+          { "asset": "chicken_pen_top_left", "at": [0, 0] },
+          { "asset": "chicken_pen_top", "at": [16, 0] },
+          { "asset": "chicken_pen_top_right", "at": [32, 0] },
+          { "asset": "chicken_pen_left", "at": [0, 16] },
+          { "asset": "chicken_pen_right", "at": [32, 16] },
+          { "asset": "chicken_pen_bottom_left", "at": [0, 32] },
+          { "asset": "chicken_pen_bottom", "at": [16, 32] },
+          { "asset": "chicken_pen_bottom_right", "at": [32, 32] }
+        ]
+      }],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_town_crate",
+      "operations": [
+        { "op": "source", "source": "rpg_town" },
+        { "op": "crop", "rect": [128, 128, 16, 16] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_town_barrel",
+      "operations": [
+        { "op": "source", "source": "rpg_town" },
+        { "op": "crop", "rect": [144, 128, 16, 16] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_green_facades",
+      "operations": [
+        { "op": "source", "source": "village_green" },
+        { "op": "crop", "rect": [32, 219, 1321, 659] },
+        { "op": "color_key", "color": [255, 0, 255], "tolerance": 70 },
+        { "op": "resize", "size": [176, 64] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_mill_facade",
+      "operations": [
+        { "op": "source", "source": "river_mill" },
+        { "op": "crop", "rect": [450, 144, 816, 788] },
+        { "op": "color_key", "color": [255, 0, 255], "tolerance": 70 },
+        { "op": "resize", "size": [96, 64] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_mill_wheel_a",
+      "operations": [
+        { "op": "source", "source": "mill_wheel_animation" },
+        { "op": "crop", "rect": [37, 145, 432, 512] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 30 },
+        { "op": "resize", "size": [32, 40] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_mill_wheel_b",
+      "operations": [
+        { "op": "source", "source": "mill_wheel_animation" },
+        { "op": "crop", "rect": [522, 145, 432, 512] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 30 },
+        { "op": "resize", "size": [32, 40] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_mill_wheel_c",
+      "operations": [
+        { "op": "source", "source": "mill_wheel_animation" },
+        { "op": "crop", "rect": [1010, 145, 432, 512] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 30 },
+        { "op": "resize", "size": [32, 40] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_mill_wheel_d",
+      "operations": [
+        { "op": "source", "source": "mill_wheel_animation" },
+        { "op": "crop", "rect": [1497, 145, 432, 512] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 30 },
+        { "op": "resize", "size": [32, 40] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_market_facades",
+      "operations": [
+        { "op": "source", "source": "market_row" },
+        { "op": "crop", "rect": [71, 122, 1442, 736] },
+        { "op": "color_key", "color": [255, 0, 255], "tolerance": 70 },
+        { "op": "resize", "size": [176, 64] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_south_gate",
+      "operations": [
+        { "op": "source", "source": "south_gate" },
+        { "op": "crop", "rect": [68, 219, 1273, 641] },
+        { "op": "color_key", "color": [255, 0, 255], "tolerance": 70 },
+        { "op": "resize", "size": [144, 64] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_farm_wheat",
+      "operations": [
+        { "op": "source", "source": "farming_crops" },
+        { "op": "crop", "rect": [16, 80, 16, 16] },
+        { "op": "color_key", "color": [0, 0, 0], "tolerance": 20 }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_farm_corn",
+      "operations": [
+        { "op": "source", "source": "farming_crops" },
+        { "op": "crop", "rect": [16, 144, 16, 16] },
+        { "op": "color_key", "color": [0, 0, 0], "tolerance": 20 }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_garden_bloom",
+      "operations": [
+        { "op": "source", "source": "farming_crops" },
+        { "op": "crop", "rect": [96, 0, 16, 16] },
+        { "op": "color_key", "color": [0, 0, 0], "tolerance": 20 }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_garden_herb",
+      "operations": [
+        { "op": "source", "source": "farming_crops" },
+        { "op": "crop", "rect": [16, 16, 16, 16] },
+        { "op": "color_key", "color": [0, 0, 0], "tolerance": 20 }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_chicken_a",
+      "operations": [
+        { "op": "source", "source": "chicken_pen" },
+        { "op": "crop", "rect": [0, 0, 16, 16] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_chicken_b",
+      "operations": [
+        { "op": "source", "source": "chicken_pen" },
+        { "op": "crop", "rect": [16, 0, 16, 16] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_smithy_anvil",
+      "operations": [
+        { "op": "source", "source": "anvil" },
+        { "op": "tint", "multiply": [1, 1, 1], "add": [55, 55, 50] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_potting_shed",
+      "operations": [
+        { "op": "source", "source": "rpg_town" },
+        { "op": "crop", "rect": [144, 16, 96, 120] },
+        { "op": "resize", "size": [80, 80] }
+      ],
+      "variants": [
+        { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
+        { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
+        { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_village_well",
+      "operations": [
+        { "op": "source", "source": "village_well" },
+        { "op": "crop", "rect": [263, 145, 741, 929] },
+        { "op": "color_key", "color": [255, 0, 255], "tolerance": 70 },
+        { "op": "resize", "size": [32, 36] }
+      ],
       "variants": [
         { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
         { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },

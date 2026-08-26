@@ -1,0 +1,77 @@
+Story Clock village exterior generation log
+Generated with: OpenAI built-in image generation, stylized-concept mode
+Date: August 2026
+
+Project references supplied to every generation:
+- village-house-generated-v1.png for architecture, palette, outline, and pixel density
+- outdoor-generated-v1.png for outdoor colors and pixel density
+
+VILLAGE GREEN
+Use case: stylized-concept. Create a production architecture sprite for a
+220x176 Rockbox top-down JRPG village screen: a cozy timber inn on the left and
+a small cream-plaster healer's house on the right. Give each a distinct steep
+weathered-shingle silhouette, two warm windows, and one unmistakable centered
+wooden door at its bottom edge. Leave a broad empty center gap for a north-south
+path. Isolate both facades on a perfectly uniform RGB #FF00FF backdrop with no
+grass, paths, people, labels, detached props, or shadows. Use crisp 16-bit-era
+top-down three-quarter pixel art, hard edges, and selective dark plum-brown
+outlines. Align both buildings to one baseline and keep them readable after
+nearest-neighbor reduction to a combined 176x64 sprite. Warm afternoon light;
+walnut timber, cream plaster, muted rose, moss-brown shingles, and amber windows.
+No text, watermark, isometric perspective, photorealism, or copyrighted game
+imagery.
+
+RIVER MILL
+Use case: stylized-concept. Create a production architecture sprite for a
+220x176 Rockbox top-down JRPG River Mill screen: one compact watermill with a
+steep mossy shingle roof, cream plaster and walnut timber walls, a clear centered
+lower door, two warm windows, and a large readable wooden waterwheel attached on
+the left without covering the door. Isolate the mill and wheel on a perfectly
+uniform RGB #FF00FF backdrop with no grass, water, paths, people, labels,
+fences, detached props, or shadows. Match the project's crisp 16-bit-era
+top-down three-quarter pixel style, hard edges, pixel density, and dark
+plum-brown outlines. Keep the horizontal silhouette readable after
+nearest-neighbor reduction to 112x64 pixels. Warm afternoon light; walnut,
+cream plaster, moss-brown shingles, amber windows, and weathered oak. No text,
+watermark, isometric perspective, photorealism, or copyrighted game imagery.
+
+MARKET ROW
+Use case: stylized-concept. Create a matched pair of production storefront
+sprites for a 220x176 Rockbox top-down JRPG market screen. Put a compact general
+store with a muted red awning on the left and a compact bakery or inn with an
+amber awning on the right. Each needs a distinct roofline, warm display window,
+and one clear wooden door at the bottom. Leave a broad open alley between them
+for the village path. Isolate both facades on a perfectly uniform RGB #FF00FF
+backdrop with no street, grass, characters, labels, loose props, or shadows.
+Match the project's crisp 16-bit-era top-down three-quarter pixel art, hard
+edges, and selective dark plum-brown outlines. Align the buildings to one
+baseline and preserve clear entrances after nearest-neighbor reduction to a
+combined 176x64 sprite. Warm afternoon light and a restrained walnut, cream,
+red, amber, moss-brown palette. No lettering, watermark, isometric perspective,
+photorealism, or copyrighted game imagery.
+
+SOUTH GATE
+Use case: stylized-concept. Create a compact village south-gate sprite for a
+220x176 Rockbox top-down JRPG screen. The landmark has a wide unmistakable open
+central arch over a road, stout timber posts on stone bases, a small smithy wing
+on the left with its own clear door, a weathered shingle roof, and two warm
+hanging lanterns. Keep the arch interior open so the road remains visible.
+Isolate the complete structure on a perfectly uniform RGB #FF00FF backdrop,
+including through the arch, with no grass, road, people, signs, loose props, or
+shadows. Match the project's crisp 16-bit-era top-down three-quarter pixel art,
+hard edges, pixel density, and dark plum-brown outlines. Preserve the open arch
+and smithy door after nearest-neighbor reduction to 144x64 pixels. Warm
+afternoon light; walnut, cream plaster, stone gray, moss-brown shingles, amber
+lanterns. No text, watermark, isometric perspective, photorealism, or
+copyrighted game imagery.
+
+VILLAGE WELL
+Use case: stylized-concept. Create one compact old village well prop for a
+220x176 Rockbox top-down JRPG screen. Use a round stone rim with visible dark
+water, two walnut posts, a small mossy shingle roof, a crank and rope, and one
+tiny warm lantern. Isolate it on a perfectly uniform RGB #FF00FF backdrop with
+no ground, people, labels, extra objects, or shadows. Match the project's crisp
+16-bit-era top-down three-quarter pixel art, hard edges, and selective dark
+plum-brown outlines. Keep a centered, balanced silhouette that remains readable
+after nearest-neighbor reduction to 32x36 pixels. No text, watermark, isometric
+perspective, photorealism, or copyrighted game imagery.

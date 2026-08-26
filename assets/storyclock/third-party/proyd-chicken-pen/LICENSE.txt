@@ -1,0 +1,9 @@
+Chicken and Pen
+Creator: Proyd
+Source: https://opengameart.org/content/chicken-and-pen
+Original file: chicken.png
+License: Creative Commons CC0 1.0 Universal
+
+Story Clock uses two 16 by 16 brown-chicken walk frames from the top row.
+Attribution is not required. The creator invites optional credit.
+The full CC0 1.0 legal text is stored at ../../../../LICENSES/CC0-1.0.txt.

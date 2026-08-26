@@ -39,19 +39,48 @@ The compiler is a build tool and is not linked into the C runtime. See
 
 `pocketstep_draw.h` keeps a caller-owned list in stable ascending foot-Y order.
 It stores application-defined kind, position, and ID fields but never draws
-them. Equal-depth records retain insertion order. A full list rejects the new
-record without changing records already accepted.
+them. Equal-depth records retain insertion order. Retention priority controls
+only what survives a full list and never changes draw order.
+
+`ps_draw_list_add` keeps the original capacity behavior. A full list rejects
+the incoming record and preserves every accepted record. New code can opt into
+`ps_draw_list_add_prioritized`. When a higher-priority record reaches a full
+list, this operation replaces the last record in draw order among those at the
+lowest retained priority. An equal or lower-priority record is rejected. This
+rule produces the same result for the same insertion sequence.
+
+`PS_DRAW_PRIORITY_OPTIONAL` is zero, so an omitted trailing priority field gets
+the optional default under C initialization rules. Use
+`PS_DRAW_PRIORITY_REQUIRED` for actors, NPCs, and interactive objects that must
+survive replaceable scenery. Required records can still reject one another, so
+the fixed capacity must fit every required record in a frame.
 
 ```c
 struct ps_drawable storage[24];
 struct ps_draw_list draw_list;
-struct ps_drawable actor = { ACTOR, x, y, feet_y, actor_id };
+struct ps_drawable tree = {
+    TREE, tree_x, tree_y, tree_feet_y, tree_id,
+    PS_DRAW_PRIORITY_OPTIONAL
+};
+struct ps_drawable actor = {
+    ACTOR, x, y, feet_y, actor_id,
+    PS_DRAW_PRIORITY_REQUIRED
+};
 
 ps_draw_list_init(&draw_list, storage, 24);
-ps_draw_list_add(&draw_list, &actor);
+ps_draw_list_add_prioritized(&draw_list, &tree);
+ps_draw_list_add_prioritized(&draw_list, &actor);
 for (i = 0; i < draw_list.count; ++i)
     draw_record(ps_draw_list_get(&draw_list, i));
+
+if (ps_draw_list_discarded(&draw_list) != 0)
+    show_scene_capacity_warning();
 ```
+
+The discard count increases when either operation rejects an incoming record
+for capacity and when prioritized insertion replaces a retained record.
+`ps_draw_list_clear` resets both the record count and discard count for the next
+frame. Invalid calls do not change the diagnostic.
 
 ## Directional animation
 
@@ -119,6 +148,9 @@ struct ps_region chest = { { 32, 16, 16, 16 }, CHEST_ID };
 int id = ps_region_find_facing(&chest, 1, &actor, PS_GRID_UP, 4);
 ```
 
+`ps_grid_direction_toward` picks the dominant cardinal direction from one
+point to another. It is useful for making an NPC face an actor before dialogue.
+
 ## Autonomous stories
 
 `pocketstep_story.h` is an optional completion-driven action sequencer. The
@@ -181,6 +213,63 @@ struct ps_scene room = {
 
 if (ps_scene_valid(&room))
     variant = ps_tile_variation(column, row, room.variation_seed, 3);
+```
+
+`ps_scene_edge_entry` implements the usual connected-screen rule. Leaving
+through the bottom enters the target near its top edge. Leaving right enters
+from the left, with the other directions mirrored. The helper preserves the
+preferred row or column when possible and searches outward for the nearest
+passable entry cell when that position is blocked.
+
+```c
+struct ps_grid_cell entry;
+
+if (ps_scene_edge_entry(&next_room, PS_GRID_RIGHT, actor_row, &entry))
+    place_actor(entry.x, entry.y);
+```
+
+Connected maps can keep directional links in a caller-owned array. Link
+validation checks scene indices, directions, duplicate exits, and destination
+edge passability. `ps_scene_links_reciprocal` adds the stricter world-map check:
+every exit must have an opposite-direction link back to its source with the
+same edge offset. Following a link returns both the destination scene and the
+nearest passable edge cell.
+
+```c
+static const struct ps_scene_link village_links[] = {
+    { COTTAGE, PS_GRID_DOWN, GREEN, 6 },
+    { GREEN, PS_GRID_UP, COTTAGE, 6 }
+};
+
+if (ps_scene_links_reciprocal(village_links, 2, scenes, scene_count) &&
+    ps_scene_link_follow(village_links, 2, scenes, scene_count,
+                         current_scene, PS_GRID_DOWN,
+                         &next_scene, &entry))
+    place_actor_in_scene(next_scene, entry);
+```
+
+`ps_scene_entrance` associates a region ID with an interior spawn and facing.
+Use `PS_SCENE_NO_DESTINATION` to keep a visible door inactive until its target
+scene exists. `ps_scene_prop` stores a tile position, visible foot position,
+asset ID, and `PS_SCENE_PROP_SOLID` flag. PocketStep validates the records but
+leaves drawing and collision-map authoring to the application.
+
+## Itinerary selection
+
+An autonomous program can store several complete action tables as
+`ps_story_script` records. `ps_story_itinerary_select` hashes an application
+seed and loop index into a repeatable valid script index. Review tools can skip
+the selector and pass a forced index to `ps_story_init_itinerary`.
+
+```c
+static const struct ps_story_script trips[] = {
+    { market_actions, ARRAYLEN(market_actions) },
+    { mill_actions, ARRAYLEN(mill_actions) }
+};
+int trip = ps_story_itinerary_select(world_seed, loop_index,
+                                     ARRAYLEN(trips));
+
+ps_story_init_itinerary(&director, trips, ARRAYLEN(trips), trip, 1);
 ```
 
 ## Build and test

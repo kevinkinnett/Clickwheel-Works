@@ -1,0 +1,8 @@
+Farming Crops 16x16
+Creator: josehzz
+Source: https://opengameart.org/content/farming-crops-16x16
+License: Creative Commons CC0 1.0 Universal
+
+The creator's original README.txt is retained in this directory. Attribution
+is not required, though the creator appreciates a link to the source profile.
+The full CC0 1.0 legal text is stored at ../../../../LICENSES/CC0-1.0.txt.

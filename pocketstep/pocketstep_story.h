@@ -12,6 +12,8 @@
 #ifndef POCKETSTEP_STORY_H
 #define POCKETSTEP_STORY_H
 
+#include <stdint.h>
+
 #define PS_STORY_ACTION_WALK 1
 #define PS_STORY_ACTION_FACE 2
 #define PS_STORY_ACTION_WAIT 3
@@ -19,6 +21,8 @@
 #define PS_STORY_ACTION_COLLECT 5
 #define PS_STORY_ACTION_SCENE 6
 #define PS_STORY_ACTION_END 7
+#define PS_STORY_ACTION_EDGE_SCENE 8
+#define PS_STORY_ACTION_LINK_SCENE 9
 
 #define PS_STORY_ACTION_FAILED -1
 #define PS_STORY_ACTION_PENDING 0
@@ -48,6 +52,12 @@ struct ps_story_director
     int state;
 };
 
+struct ps_story_script
+{
+    const struct ps_story_action *actions;
+    int action_count;
+};
+
 typedef int (*ps_story_action_handler)(const struct ps_story_action *action,
                                        void *context);
 typedef void (*ps_story_reset_handler)(void *context);
@@ -55,6 +65,13 @@ typedef void (*ps_story_reset_handler)(void *context);
 int ps_story_init(struct ps_story_director *director,
                   const struct ps_story_action *actions,
                   int action_count, int looping);
+int ps_story_script_valid(const struct ps_story_script *script);
+int ps_story_itinerary_select(uint32_t seed, uint32_t loop_index,
+                              int itinerary_count);
+int ps_story_init_itinerary(struct ps_story_director *director,
+                            const struct ps_story_script *itineraries,
+                            int itinerary_count, int itinerary_index,
+                            int looping);
 void ps_story_reset(struct ps_story_director *director);
 int ps_story_update(struct ps_story_director *director,
                     ps_story_action_handler action_handler,
@@ -80,6 +97,42 @@ int ps_story_init(struct ps_story_director *director,
     director->looping = looping != 0;
     ps_story_reset(director);
     return 1;
+}
+
+int ps_story_script_valid(const struct ps_story_script *script)
+{
+    return script != 0 && script->actions != 0 && script->action_count > 0;
+}
+
+int ps_story_itinerary_select(uint32_t seed, uint32_t loop_index,
+                              int itinerary_count)
+{
+    uint32_t value;
+
+    if (itinerary_count <= 0)
+        return -1;
+    value = seed ^ (loop_index + (uint32_t)0x9e3779b9UL);
+    value ^= value >> 16;
+    value *= (uint32_t)0x7feb352dUL;
+    value ^= value >> 15;
+    value *= (uint32_t)0x846ca68bUL;
+    value ^= value >> 16;
+    return (int)(value % (uint32_t)itinerary_count);
+}
+
+int ps_story_init_itinerary(struct ps_story_director *director,
+                            const struct ps_story_script *itineraries,
+                            int itinerary_count, int itinerary_index,
+                            int looping)
+{
+    if (itineraries == 0 || itinerary_count <= 0 ||
+        itinerary_index < 0 || itinerary_index >= itinerary_count ||
+        !ps_story_script_valid(&itineraries[itinerary_index]))
+        return 0;
+    return ps_story_init(director,
+                         itineraries[itinerary_index].actions,
+                         itineraries[itinerary_index].action_count,
+                         looping);
 }
 
 void ps_story_reset(struct ps_story_director *director)

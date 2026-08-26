@@ -128,12 +128,46 @@ static void test_loop_reset(void)
            director.state == PS_STORY_RUNNING);
 }
 
+static void test_itinerary_selection(void)
+{
+    static const struct ps_story_action first[] = {
+        { PS_STORY_ACTION_WAIT, 1, 0, 0, 0 },
+        { PS_STORY_ACTION_END, 0, 0, 0, 0 }
+    };
+    static const struct ps_story_action second[] = {
+        { PS_STORY_ACTION_FACE, 2, 0, 0, 0 },
+        { PS_STORY_ACTION_END, 0, 0, 0, 0 }
+    };
+    static const struct ps_story_script scripts[] = {
+        { first, 2 }, { second, 2 }, { first, 2 },
+        { second, 2 }, { first, 2 }
+    };
+    struct ps_story_director director;
+    int selection = ps_story_itinerary_select(117, 4, 5);
+    uint32_t seen = 0;
+    uint32_t loop;
+
+    assert(selection >= 0 && selection < 5);
+    assert(ps_story_itinerary_select(117, 4, 5) == selection);
+    assert(ps_story_itinerary_select(117, 4, 0) == -1);
+    for (loop = 0; loop < 256; ++loop)
+        seen |= (uint32_t)1 << ps_story_itinerary_select(117, loop, 5);
+    assert(seen == 0x1f);
+    assert(ps_story_script_valid(&scripts[0]));
+    assert(ps_story_init_itinerary(&director, scripts, 5, 3, 0));
+    assert(director.actions == second && director.action_count == 2);
+    assert(ps_story_init_itinerary(&director, scripts, 5, 4, 1));
+    assert(director.actions == first && director.looping == 1);
+    assert(!ps_story_init_itinerary(&director, scripts, 5, 5, 0));
+}
+
 int main(void)
 {
     test_order_and_wait();
     test_pending_action_blocks_next();
     test_failure_stops_progress();
     test_loop_reset();
+    test_itinerary_selection();
     puts("PocketStep story tests passed");
     return 0;
 }

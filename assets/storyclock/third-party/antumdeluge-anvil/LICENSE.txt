@@ -1,0 +1,8 @@
+Anvil
+Creators: nightowl, Momentmal, and Jordan Irwin, also known as AntumDeluge
+Source: https://opengameart.org/content/anvil-2
+Original file: anvil-16x16-black.png
+License: Creative Commons CC0 1.0 Universal
+
+Attribution is not required. The full CC0 1.0 legal text is stored at
+../../../../LICENSES/CC0-1.0.txt.

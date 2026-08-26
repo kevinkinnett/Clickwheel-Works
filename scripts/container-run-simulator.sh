@@ -16,7 +16,8 @@ xvfb_pid=$!
 trap 'kill "$sim_pid" "$vnc_pid" "$web_pid" "$xvfb_pid" 2>/dev/null || true' EXIT INT TERM
 sleep 1
 
-x11vnc -display "$display" -forever -shared -nopw -rfbport 5900 \
+x11vnc -display "$display" -forever -shared -nopw -noxdamage -nowf \
+    -rfbport 5900 \
     >/tmp/chronolith-vnc.log 2>&1 &
 vnc_pid=$!
 

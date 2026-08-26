@@ -5,8 +5,8 @@ build_dir=/rockbox/src/build-sim-ipodcolor
 video_dir=/project/artifacts/video
 scenario=${STORYCLOCK_SCENARIO:-day}
 display=:99
-capture_duration=44
-output_duration=41
+capture_duration=76
+output_duration=73
 trim_start=1.4
 
 case "$scenario" in
@@ -14,6 +14,11 @@ case "$scenario" in
     day) scenario_number=1 ;;
     evening) scenario_number=2 ;;
     night) scenario_number=3 ;;
+    market) scenario_number=10 ;;
+    mill) scenario_number=11 ;;
+    gate) scenario_number=12 ;;
+    farm) scenario_number=13 ;;
+    garden) scenario_number=14 ;;
     *) echo "Unknown Story Clock scenario: $scenario" >&2; exit 2 ;;
 esac
 

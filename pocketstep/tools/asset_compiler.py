@@ -21,6 +21,14 @@ class AssetError(ValueError):
     """A manifest or source asset is invalid."""
 
 
+def flattened_pixels(image: Image.Image):
+    """Return pixels across Pillow versions without changing their order."""
+    getter = getattr(image, "get_flattened_data", None)
+    if getter is not None:
+        return getter()
+    return image.getdata()
+
+
 def require_dict(value: Any, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise AssetError(f"{label} must be an object")
@@ -93,6 +101,18 @@ def flip_image(image: Image.Image, axis: Any, label: str) -> Image.Image:
     raise AssetError(f"{label} axis must be horizontal or vertical")
 
 
+def rotate_image(image: Image.Image, degrees: Any, label: str) -> Image.Image:
+    degrees = require_int(degrees, f"{label}.degrees")
+    rotations = {
+        90: Image.Transpose.ROTATE_270,
+        180: Image.Transpose.ROTATE_180,
+        270: Image.Transpose.ROTATE_90,
+    }
+    if degrees not in rotations:
+        raise AssetError(f"{label}.degrees must be 90, 180, or 270")
+    return image.transpose(rotations[degrees])
+
+
 def color_key(image: Image.Image, operation: dict[str, Any], label: str) -> Image.Image:
     key = parse_color(operation.get("color"), f"{label}.color", False)
     tolerance = require_int(operation.get("tolerance", 0),
@@ -101,7 +121,7 @@ def color_key(image: Image.Image, operation: dict[str, Any], label: str) -> Imag
         raise AssetError(f"{label}.tolerance must not exceed 255")
     result = image.convert("RGBA")
     pixels = []
-    for red, green, blue, alpha in result.get_flattened_data():
+    for red, green, blue, alpha in flattened_pixels(result):
         if (abs(red - key[0]) <= tolerance and
                 abs(green - key[1]) <= tolerance and
                 abs(blue - key[2]) <= tolerance):
@@ -124,7 +144,7 @@ def tint_image(image: Image.Image, value: Any, label: str) -> Image.Image:
         raise AssetError(f"{label} values must be numbers")
     result = image.convert("RGBA")
     pixels = []
-    for red, green, blue, alpha in result.get_flattened_data():
+    for red, green, blue, alpha in flattened_pixels(result):
         channels = (red, green, blue)
         tinted = tuple(max(0, min(255, int(channels[index] * multiply[index] +
                                            add[index])))
@@ -227,6 +247,8 @@ class Compiler:
                                      Image.Resampling.NEAREST)
             elif kind == "flip":
                 image = flip_image(image, operation.get("axis"), label)
+            elif kind == "rotate":
+                image = rotate_image(image, operation.get("degrees"), label)
             elif kind == "color_key":
                 image = color_key(image, operation, label)
             elif kind == "tint":
@@ -287,7 +309,7 @@ def rgb565_swapped(red: int, green: int, blue: int) -> int:
 def emit_array(name: str, image: Image.Image,
                transparent: tuple[int, int, int]) -> str:
     values = []
-    for red, green, blue, alpha in image.convert("RGBA").get_flattened_data():
+    for red, green, blue, alpha in flattened_pixels(image.convert("RGBA")):
         if alpha < 128:
             red, green, blue = transparent
         values.append(rgb565_swapped(red, green, blue))

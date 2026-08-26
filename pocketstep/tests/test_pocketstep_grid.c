@@ -104,6 +104,22 @@ static void test_facing_regions(void)
                                  PS_GRID_UP, 3) == -1);
 }
 
+static void test_direction_toward(void)
+{
+    assert(ps_grid_direction_toward(2, 2, 5, 2, PS_GRID_UP) ==
+           PS_GRID_RIGHT);
+    assert(ps_grid_direction_toward(2, 2, 0, 2, PS_GRID_UP) ==
+           PS_GRID_LEFT);
+    assert(ps_grid_direction_toward(2, 2, 2, 5, PS_GRID_UP) ==
+           PS_GRID_DOWN);
+    assert(ps_grid_direction_toward(2, 2, 2, 0, PS_GRID_DOWN) ==
+           PS_GRID_UP);
+    assert(ps_grid_direction_toward(2, 2, 2, 2, PS_GRID_LEFT) ==
+           PS_GRID_LEFT);
+    assert(ps_grid_direction_toward(2, 2, 3, 3, PS_GRID_LEFT) ==
+           PS_GRID_DOWN);
+}
+
 int main(void)
 {
     test_blocked_queries();
@@ -111,6 +127,7 @@ int main(void)
     test_deterministic_tie();
     test_unreachable_and_capacity();
     test_facing_regions();
+    test_direction_toward();
     puts("PocketStep grid tests passed");
     return 0;
 }

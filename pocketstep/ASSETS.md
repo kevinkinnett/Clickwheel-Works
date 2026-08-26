@@ -40,6 +40,7 @@ one source image.
 - `crop` accepts `[x, y, width, height]` and rejects out-of-bounds rectangles.
 - `resize` accepts `[width, height]` and always uses nearest-neighbor sampling.
 - `flip` accepts `horizontal` or `vertical`.
+- `rotate` accepts clockwise rotations of `90`, `180`, or `270` degrees.
 - `color_key` makes pixels near an RGB color transparent. `tolerance` defaults
   to zero.
 - `tint` multiplies and offsets RGB channels while preserving alpha.

@@ -16,8 +16,9 @@ bottom-anchored character resizing.
 
 Optional modules add fixed-memory tile routing, facing interaction probes,
 completion-driven autonomous sequences, stable foot-Y draw ordering,
-directional sprite animation, caller-owned scene descriptions, and stateless
-tile variation. Story Clock uses the full top-down set for its vignette.
+directional sprite animation, caller-owned scene descriptions, passable
+edge-to-edge scene transitions, relative facing, and stateless tile variation.
+Story Clock uses the full top-down set for its vignette.
 
 Run its host tests without booting Rockbox.
 
@@ -33,8 +34,8 @@ the MIT License. The Rockbox plugins use GPL-2.0-or-later.
 Pixel art is compiled by
 [`scripts/compile-pocketstep-assets.py`](scripts/compile-pocketstep-assets.py).
 The compiler reads a JSON manifest, applies declared crop, assembly, resize,
-transparency, tint, and RGB565 conversion steps, then atomically replaces the
-generated C header. See the
+rotation, transparency, tint, and RGB565 conversion steps, then atomically
+replaces the generated C header. See the
 [`asset compiler guide`](pocketstep/ASSETS.md) for the manifest format.
 
 ## Chronolith
@@ -85,18 +86,34 @@ repeatable visual testing; the iPod build schedules it only from the clock.
 
 Story Clock is the temporary internal name for an autonomous top-down story
 screensaver. It is not a playable game. Luma wakes in a 13×11 tile house,
-collects an ember key, speaks with Mira, follows a collision-safe route outside,
-meets Tovin, reaches the hill beacon, and then begins the vignette again.
+collects an ember key, speaks with Mira, visits Tovin at Cottage Rise, and
+crosses Village Green. Each loop then selects a complete trip to Market Row,
+River Mill, South Gate, South Fields, or Herb Garden before returning home.
+
+The seven exterior screens form a small hub village. Cottage Rise is north of
+Village Green, River Mill is west, Market Row is east, and South Gate is south.
+South Fields continues below the gate, while Herb Garden continues east of the
+market.
+Reciprocal links preserve the actor's row or column at each screen edge. Every
+new facade has a reserved, currently inactive entrance record so later indoor
+scenes can be added without moving its door or rewriting the map.
 
 The program uses caller-owned breadth-first-search storage, fixed-point motion
 between tile centers, a small foot collider, shared foot-Y depth sorting,
-directional animation selection, two-line automatically timed dialogue, and an
-inventory indicator. The clock continues to read Rockbox time during movement
-and conversations. Outdoor colors follow day, evening, and night while the map
-and collision cells remain unchanged. Simulator-only scenario files can force
-a palette for deterministic review. Characters and story objects are original
-project artwork. The outdoor ground, path, flowers, and trees use selected CC0
-tiles from Kenney's Tiny Town pack, with its license retained in the asset tree.
+directional animation selection, NPC conversation facing, standard
+opposite-edge scene entry, doorway-specific scene spawns, two-line
+automatically timed dialogue, and an inventory indicator.
+Rockbox time remains hidden and controls the outdoor day, evening, and night
+palette. The map and collision cells remain unchanged between palettes.
+Simulator-only scenario files can force a palette for deterministic review.
+Characters and story objects are original project artwork. Generated
+architecture and outdoor sources live with the manifest. The exterior uses a
+generated cottage, inn and healer pair, mill, market row, south gate, and well,
+plus CC0 terrain and village props. South Fields reuses the cottage with CC0
+crops and a chicken loop. Herb Garden uses a complete front-facing section of
+the CC0 RPG Town sheet as its potting shed. The smithy now has an exterior CC0
+anvil and forge activity. The indoor furniture pack retains its CC BY
+attribution in the asset tree.
 
 Regenerate the checked-in Story Clock bitmap header after changing source art
 or its manifest:
@@ -175,9 +192,20 @@ sheet with:
 .\scripts\Build-StoryClockContactSheet.ps1 -Scenario day
 ```
 
-`Scenario` can be `auto`, `day`, `evening`, or `night`. The MP4 is written to
-`artifacts/video`; the 4×2 review sheet is under
+`Scenario` can be `auto`, `day`, `evening`, `night`, `market`, `mill`, `gate`,
+`farm`, or `garden`. The district choices force one complete itinerary with the
+day palette.
+The MP4 is written to `artifacts/video`; its 4×3 review sheet is under
 `artifacts/screenshots/storyclock`.
+
+Capture all seven exterior screens at native iPod resolution in every palette:
+
+```powershell
+.\scripts\Capture-StoryClockVillage.ps1
+```
+
+This writes the individual 220×176 frames and the day, evening, and night
+review sheets under `artifacts/screenshots/storyclock/village`.
 
 The captures go under `artifacts/screenshots`. The repository ignores that
 directory because recordings and device builds are local products.
@@ -200,7 +228,9 @@ This creates:
 - `artifacts/device/mushroomclock-ipodcolor-rockbox-4.0.rock` is the standalone
   Mushroom Clock plugin for Rockbox 4.0.
 - `artifacts/device/storyclock-ipodcolor-rockbox-4.0.rock` is the standalone
-  Story Clock plugin for Rockbox 4.0.
+  Story Clock plugin for Rockbox 4.0. The expanded eight-scene build is 499,268
+  bytes; its SHA-256 is
+  `5e44128ef7972f583ccf2410e56e320d59396cd8efe48952453972913266ebe8`.
 - `artifacts/device/rockbox-ipodcolor-4.0-official-plus-clocks.zip` is official
   Rockbox 4.0 with all three clock plugins added.
 - `artifacts/device/rockbox-chronolith.ipod` is the firmware binary.

@@ -63,6 +63,8 @@ struct ps_region
 };
 
 int ps_grid_is_blocked(const struct ps_grid *grid, int x, int y);
+int ps_grid_direction_toward(int from_x, int from_y,
+                             int to_x, int to_y, int fallback);
 int ps_grid_find_path(const struct ps_grid *grid,
                       int start_x, int start_y,
                       int destination_x, int destination_y,
@@ -104,6 +106,23 @@ int ps_grid_is_blocked(const struct ps_grid *grid, int x, int y)
         x >= grid->width || y >= grid->height)
         return 1;
     return grid->blocked[ps_grid_index(grid, x, y)] != 0;
+}
+
+int ps_grid_direction_toward(int from_x, int from_y,
+                             int to_x, int to_y, int fallback)
+{
+    int delta_x = to_x - from_x;
+    int delta_y = to_y - from_y;
+    int distance_x = delta_x < 0 ? -delta_x : delta_x;
+    int distance_y = delta_y < 0 ? -delta_y : delta_y;
+
+    if (fallback < PS_GRID_UP || fallback > PS_GRID_LEFT)
+        fallback = PS_GRID_DOWN;
+    if (delta_x == 0 && delta_y == 0)
+        return fallback;
+    if (distance_x > distance_y)
+        return delta_x > 0 ? PS_GRID_RIGHT : PS_GRID_LEFT;
+    return delta_y > 0 ? PS_GRID_DOWN : PS_GRID_UP;
 }
 
 int ps_grid_find_path(const struct ps_grid *grid,

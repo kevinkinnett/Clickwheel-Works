@@ -1,0 +1,14 @@
+Cottage Core Bedroom Furniture Set
+Copyright (c) Pixelandbeans
+
+Source:
+https://opengameart.org/content/cottage-core-bedroom-furniture-set
+
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+Attribution:
+"Cottage Core Bedroom Furniture Set" by Pixelandbeans, used under CC BY 4.0.
+
+The source artwork is retained as cottage_core.png. Story Clock crops and
+resizes selected objects through assets/storyclock/assets.json.

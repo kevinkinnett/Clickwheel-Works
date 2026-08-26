@@ -1,0 +1,21 @@
+Tool: OpenAI built-in image generation
+Mode: generate, then reference-image edit
+Date: August 2026
+
+Initial prompt
+--------------
+Use case: stylized-concept
+Asset type: production exterior building sprite for a 220x176 Rockbox top-down JRPG village screen
+Primary request: Create one compact cottage exterior that clearly communicates an enterable building. It must have a centered wooden front door at the exact bottom center, a visible stone threshold or tiny porch aligned to a one-tile path, two small warm windows, a steep weathered shingle roof, plaster-and-timber lower walls, and one modest chimney.
+Input images: Image 1 is the current outdoor screen and establishes the 16-pixel grid, top-down viewpoint, and available palette. Image 2 establishes the current outdoor pixel density and natural colors. Image 3 establishes the bedroom's walnut, cream, muted rose, and amber architecture, so the exterior should plausibly contain that room. Create original artwork rather than copying individual reference assets.
+Scene/backdrop: one isolated cottage on a genuinely transparent background, with no grass, path, trees, fence, characters, or detached props.
+Style/medium: crisp hand-placed 16-bit-era top-down JRPG pixel art, hard pixel edges, selective dark plum-brown outlines, readable after nearest-neighbor reduction to an 80x48 pixel sprite.
+Composition/framing: centered straight-on top-down three-quarter facade, approximately five 16-pixel tiles wide and three tiles tall. Door occupies the central bottom tile. Keep the lower doorway unobstructed so an actor can emerge in front of it.
+Lighting/mood: warm late-afternoon light from upper left, inviting but quiet.
+Color palette: walnut timber, cream plaster, mossy brown roof, muted rose curtains, small amber window light, gray stone threshold.
+Constraints: strong readable silhouette at 80x48; roof and wall must remain distinct; transparent outside the building; no anti-aliasing; no text; no sign; no watermark.
+Avoid: isometric perspective, side-facing door, huge mansion, miniature dollhouse, photorealism, soft painting, fluorescent colors, recognizable copyrighted game imagery.
+
+Background-key edit prompt
+--------------------------
+Edit only the background of this cottage sprite. Preserve the cottage design, pixel-art structure, roof, chimney, cream walls, windows, centered door, stone threshold, palette, proportions, and framing exactly. Replace every pixel outside the cottage silhouette, including the entire checkerboard and any exterior shadow, with one perfectly uniform flat chroma-key magenta color RGB #FF00FF. Do not add transparency, gradients, checkerboard, grass, glow, text, border, or shadow. Keep the cottage isolated and centered. Output a lossless crisp pixel-art image with hard edges suitable for color-key removal and nearest-neighbor reduction.

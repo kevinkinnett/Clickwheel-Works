@@ -1,0 +1,43 @@
+Story Clock mill wheel animation generation log
+Generated with: OpenAI built-in image generation, precise-object-edit mode
+Date: August 2026
+Reference: river-mill-generated-v1.png
+
+INITIAL PROMPT
+Use case: precise-object-edit
+Asset type: four-frame production pixel-art animation sheet for a 220x176
+Rockbox top-down JRPG screen
+Input images: Image 1 is the edit target and exact style reference. Use only
+its wooden waterwheel from the left side of the mill.
+Primary request: Extract and redraw the waterwheel as four equal square
+animation frames in one horizontal strip. The outer circular wheel, center
+axle, bottom mounting stand, palette, scale, outline, and lighting must stay
+stable in all four frames. Only the eight radial spokes rotate clockwise
+between frames at 0 degrees, 22.5 degrees, 45 degrees, and 67.5 degrees. This
+must read as rotation when played in order, never as a mirror flip or wobble.
+Scene/backdrop: genuinely transparent background in every frame.
+Style/medium: crisp 16-bit-era top-down three-quarter JRPG pixel art matching
+Image 1, hard pixel edges, no antialiasing.
+Composition/framing: four equal square cells, aligned on one baseline, with
+transparent separation. The same wheel center occupies the same coordinate
+inside every cell.
+Constraints: preserve the original weathered walnut and dark plum-brown
+palette; stationary rim, axle housing, and support stand; no mill building;
+no water; no ground; no text; no watermark; no extra objects.
+Avoid: flipping, bouncing, changing scale, changing silhouette, rotating the
+support stand, soft painting, blur, isometric scene, copyrighted game imagery.
+
+CORRECTION PROMPT
+Use case: precise-object-edit
+Asset type: corrected four-frame production pixel-art animation strip
+Input images: Image 1 is the edit target.
+Primary request: Fix only the spoke positions. Frame 1 stays at 0 degrees.
+Rotate the complete eight-spoke lattice clockwise to 22.5 degrees in frame 2,
+45 degrees in frame 3, and 67.5 degrees in frame 4. Every successive frame
+must have a visibly different spoke angle and playing 1, 2, 3, 4 must look
+like continuous clockwise rotation.
+Constraints: keep all four outer rims, center hubs, axle covers, bottom
+mounting stands, cell sizes, alignment, colors, lighting, outlines, and
+background unchanged. The support stands must never rotate, flip, move,
+resize, or wobble. No duplicate adjacent spoke poses. No text, watermark,
+building, water, ground, or new elements.
