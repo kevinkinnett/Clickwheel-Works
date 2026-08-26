@@ -1,13 +1,14 @@
 param(
     [ValidateSet('auto', 'day', 'evening', 'night',
                  'market', 'mill', 'gate', 'farm', 'garden',
-                 'inventory', 'inventory-empty', 'dialogue')]
+                 'inventory', 'inventory-empty', 'dialogue',
+                 'smithy', 'smithy-evening', 'smithy-night')]
     [string]$Scenario = 'day'
 )
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$sampleRate = if ($Scenario -eq 'inventory') { '4/3' } elseif ($Scenario -eq 'inventory-empty' -or $Scenario -eq 'dialogue') { '1' } else { '1/6' }
+$sampleRate = if ($Scenario -eq 'inventory') { '4/3' } elseif ($Scenario -like 'smithy*') { '1/2' } elseif ($Scenario -eq 'inventory-empty' -or $Scenario -eq 'dialogue') { '1' } else { '1/6' }
 
 podman run --rm `
     -e "STORYCLOCK_SCENARIO=$Scenario" `

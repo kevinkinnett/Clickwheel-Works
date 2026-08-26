@@ -49,6 +49,7 @@
 #define SCENE_GATE 5
 #define SCENE_FIELDS 6
 #define SCENE_GARDEN 7
+#define SCENE_SMITHY 8
 #define ITEM_KEY 1
 #define ITEM_MARKET_TOKEN 2
 #define ITEM_BRASS_COG 3
@@ -67,12 +68,14 @@
 #define REGION_GATE_SMITH 25
 #define REGION_FIELDS_HOUSE 26
 #define REGION_GARDEN_SHED 27
+#define REGION_SMITHY_EXIT 28
 #define REGION_GREEN_NPC 30
 #define REGION_MILL_NPC 31
 #define REGION_MARKET_NPC 32
 #define REGION_GATE_NPC 33
 #define REGION_FIELDS_NPC 34
 #define REGION_GARDEN_NPC 35
+#define REGION_SMITHY_NPC 36
 #define DRAW_ACTOR 1
 #define DRAW_NPC 2
 #define DRAW_ITEM 3
@@ -81,6 +84,8 @@
 #define STORY_ACTION_GRANT_ITEM 100
 #define STORY_ACTION_PRESENT_INVENTORY 101
 #define STORY_ACTION_CONSUME_ITEM 102
+#define STORY_ACTION_USE_ENTRANCE 103
+#define STORY_ACTION_SMITHY_DIALOGUE 104
 #define STORY_FAILURE_INVENTORY_FULL -100
 #define STORY_FAILURE_INVENTORY_STATE -101
 #define STORY_FAILURE_DIALOGUE -102
@@ -98,6 +103,16 @@
 #define OUTDOOR_PROP_BARREL 101
 #define OUTDOOR_PROP_WELL 102
 #define OUTDOOR_PROP_ANVIL 103
+#define INDOOR_PROP_FORGE 104
+#define INDOOR_PROP_BELLOWS 105
+#define INDOOR_PROP_TROUGH 106
+#define INDOOR_PROP_WORKBENCH 107
+#define INDOOR_PROP_COAL 108
+#define SCENE_KIND_OUTDOOR 0
+#define SCENE_KIND_INDOOR 1
+#define INTERIOR_NONE 0
+#define INTERIOR_HOUSE 1
+#define INTERIOR_SMITHY 2
 #define PALETTE_AUTO 0
 #define PALETTE_DAY 1
 #define PALETTE_EVENING 2
@@ -146,6 +161,21 @@ struct story_item_definition
     const char *line_one;
     const char *line_two;
     const unsigned short *icon;
+};
+
+struct story_scene_presentation
+{
+    int kind;
+    int interior;
+    int ambient;
+};
+
+struct story_npc_placement
+{
+    int scene;
+    int npc;
+    int column;
+    int row;
 };
 
 struct story_state
@@ -343,9 +373,9 @@ static const unsigned char gate_blocked[MAP_WIDTH * MAP_HEIGHT] = {
     1,0,0,0,0,0,0,0,0,1,0,1,1,
     1,0,0,0,0,0,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,1,0,1,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,1,1,1,1,0,0,0,1,1,1,1,1,
-    1,1,1,1,1,0,0,0,1,1,1,1,1,
+    1,1,1,1,1,1,0,0,0,0,0,0,1,
+    1,1,0,1,1,0,0,0,1,1,1,1,1,
+    1,1,0,0,0,0,0,0,1,1,1,1,1,
     1,1,1,1,1,0,0,0,1,1,1,1,1,
     1,1,1,1,1,1,0,1,1,1,1,1,1
 };
@@ -406,6 +436,34 @@ static const unsigned char garden_blocked[MAP_WIDTH * MAP_HEIGHT] = {
     1,1,1,1,1,1,1,1,1,1,1,1,1
 };
 
+static const unsigned char smithy_tiles[MAP_WIDTH * MAP_HEIGHT] = {
+    1,1,1,1,1,1,1,1,1,1,1,1,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,1,1,1,1,1,10,1,1,1,1,1,1
+};
+
+static const unsigned char smithy_blocked[MAP_WIDTH * MAP_HEIGHT] = {
+    1,1,1,1,1,1,1,1,1,1,1,1,1,
+    1,0,0,0,1,1,1,1,1,0,0,0,1,
+    1,0,0,0,1,1,1,1,1,0,1,1,1,
+    1,0,0,0,0,0,0,0,0,0,1,1,1,
+    1,1,1,1,0,0,1,0,0,0,0,1,1,
+    1,1,1,1,1,0,0,0,0,1,1,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,1,1,0,0,0,0,0,0,1,1,1,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,1,1,1,1,1,0,1,1,1,1,1,1
+};
+
 static const struct ps_region house_regions[] = {
     { { 9 * TILE_SIZE + MAP_GUTTER, 4 * TILE_SIZE, 16, 16 }, REGION_ITEM },
     { { 2 * TILE_SIZE + MAP_GUTTER, 4 * TILE_SIZE, 16, 16 }, REGION_INDOOR_NPC }
@@ -448,6 +506,13 @@ static const struct ps_region garden_regions[] = {
     { { 7 * TILE_SIZE + MAP_GUTTER, 7 * TILE_SIZE, 16, 16 }, REGION_GARDEN_NPC }
 };
 
+static const struct ps_region smithy_regions[] = {
+    { { 6 * TILE_SIZE + MAP_GUTTER, 10 * TILE_SIZE, 16, 16 },
+      REGION_SMITHY_EXIT },
+    { { 6 * TILE_SIZE + MAP_GUTTER, 4 * TILE_SIZE, 16, 16 },
+      REGION_SMITHY_NPC }
+};
+
 static const struct ps_scene scenes[] = {
     { MAP_WIDTH, MAP_HEIGHT, house_tiles,
       { MAP_WIDTH, MAP_HEIGHT, house_blocked },
@@ -472,7 +537,10 @@ static const struct ps_scene scenes[] = {
       fields_regions, ARRAYLEN(fields_regions), { 6, 1 }, 73107 },
     { MAP_WIDTH, MAP_HEIGHT, garden_tiles,
       { MAP_WIDTH, MAP_HEIGHT, garden_blocked },
-      garden_regions, ARRAYLEN(garden_regions), { 1, 5 }, 73108 }
+      garden_regions, ARRAYLEN(garden_regions), { 1, 5 }, 73108 },
+    { MAP_WIDTH, MAP_HEIGHT, smithy_tiles,
+      { MAP_WIDTH, MAP_HEIGHT, smithy_blocked },
+      smithy_regions, ARRAYLEN(smithy_regions), { 6, 9 }, 73109 }
 };
 
 static const struct ps_scene_link village_links[] = {
@@ -501,12 +569,14 @@ static const struct ps_scene_entrance village_entrances[] = {
       { 0, 0 }, PS_GRID_UP },
     { SCENE_MARKET, REGION_MARKET_INN, PS_SCENE_NO_DESTINATION,
       { 0, 0 }, PS_GRID_UP },
-    { SCENE_GATE, REGION_GATE_SMITH, PS_SCENE_NO_DESTINATION,
-      { 0, 0 }, PS_GRID_UP },
+    { SCENE_GATE, REGION_GATE_SMITH, SCENE_SMITHY,
+      { 6, 9 }, PS_GRID_UP },
     { SCENE_FIELDS, REGION_FIELDS_HOUSE, PS_SCENE_NO_DESTINATION,
       { 0, 0 }, PS_GRID_UP },
     { SCENE_GARDEN, REGION_GARDEN_SHED, PS_SCENE_NO_DESTINATION,
-      { 0, 0 }, PS_GRID_UP }
+      { 0, 0 }, PS_GRID_UP },
+    { SCENE_SMITHY, REGION_SMITHY_EXIT, SCENE_GATE,
+      { 2, 8 }, PS_GRID_DOWN }
 };
 
 static const struct ps_scene_prop village_props[] = {
@@ -516,12 +586,56 @@ static const struct ps_scene_prop village_props[] = {
       OUTDOOR_PROP_BARREL, PS_SCENE_PROP_SOLID },
     { SCENE_GREEN, 4, 6, 7 * TILE_SIZE - 1,
       OUTDOOR_PROP_WELL, PS_SCENE_PROP_SOLID },
-    { SCENE_GATE, 2, 8, 9 * TILE_SIZE - 1,
+    { SCENE_GATE, 1, 8, 9 * TILE_SIZE - 1,
       OUTDOOR_PROP_ANVIL, PS_SCENE_PROP_SOLID },
-    { SCENE_GATE, 3, 8, 9 * TILE_SIZE - 1,
+    { SCENE_GATE, 4, 9, 10 * TILE_SIZE - 1,
       OUTDOOR_PROP_BARREL, PS_SCENE_PROP_SOLID },
     { SCENE_FIELDS, 1, 5, 6 * TILE_SIZE - 1,
-      OUTDOOR_PROP_CRATE, PS_SCENE_PROP_SOLID }
+      OUTDOOR_PROP_CRATE, PS_SCENE_PROP_SOLID },
+    { SCENE_SMITHY, 5, 1, 3 * TILE_SIZE - 1,
+      INDOOR_PROP_FORGE, PS_SCENE_PROP_SOLID },
+    { SCENE_SMITHY, 1, 4, 6 * TILE_SIZE - 1,
+      INDOOR_PROP_WORKBENCH, PS_SCENE_PROP_SOLID },
+    { SCENE_SMITHY, 4, 5, 6 * TILE_SIZE - 1,
+      OUTDOOR_PROP_ANVIL, PS_SCENE_PROP_SOLID },
+    { SCENE_SMITHY, 9, 5, 6 * TILE_SIZE - 1,
+      INDOOR_PROP_BELLOWS, PS_SCENE_PROP_SOLID },
+    { SCENE_SMITHY, 9, 7, 8 * TILE_SIZE - 1,
+      INDOOR_PROP_TROUGH, PS_SCENE_PROP_SOLID },
+    { SCENE_SMITHY, 10, 2, 4 * TILE_SIZE - 1,
+      INDOOR_PROP_COAL, PS_SCENE_PROP_SOLID },
+    { SCENE_SMITHY, 11, 4, 5 * TILE_SIZE - 1,
+      OUTDOOR_PROP_CRATE, PS_SCENE_PROP_SOLID },
+    { SCENE_SMITHY, 1, 7, 8 * TILE_SIZE - 1,
+      OUTDOOR_PROP_CRATE, PS_SCENE_PROP_SOLID },
+    { SCENE_SMITHY, 2, 7, 8 * TILE_SIZE - 1,
+      OUTDOOR_PROP_BARREL, PS_SCENE_PROP_SOLID },
+    { SCENE_SMITHY, 11, 7, 8 * TILE_SIZE - 1,
+      OUTDOOR_PROP_BARREL, PS_SCENE_PROP_SOLID }
+};
+
+static const struct story_scene_presentation scene_presentations[] = {
+    { SCENE_KIND_INDOOR, INTERIOR_HOUSE, 0 },
+    { SCENE_KIND_OUTDOOR, INTERIOR_NONE, 0 },
+    { SCENE_KIND_OUTDOOR, INTERIOR_NONE, 1 },
+    { SCENE_KIND_OUTDOOR, INTERIOR_NONE, 1 },
+    { SCENE_KIND_OUTDOOR, INTERIOR_NONE, 1 },
+    { SCENE_KIND_OUTDOOR, INTERIOR_NONE, 1 },
+    { SCENE_KIND_OUTDOOR, INTERIOR_NONE, 1 },
+    { SCENE_KIND_OUTDOOR, INTERIOR_NONE, 1 },
+    { SCENE_KIND_INDOOR, INTERIOR_SMITHY, 1 }
+};
+
+static const struct story_npc_placement npc_placements[] = {
+    { SCENE_HOUSE, 0, 2, 4 },
+    { SCENE_COTTAGE, 1, 3, 5 },
+    { SCENE_GREEN, 2, 7, 6 },
+    { SCENE_MILL, 3, 6, 6 },
+    { SCENE_MARKET, 4, 8, 6 },
+    { SCENE_GATE, 5, 7, 6 },
+    { SCENE_FIELDS, 6, 8, 5 },
+    { SCENE_GARDEN, 7, 7, 7 },
+    { SCENE_SMITHY, 5, 6, 4 }
 };
 
 static const struct ps_anim_sheet actor_animation = {
@@ -643,18 +757,42 @@ static const struct ps_story_action gate_actions[] = {
     { PS_STORY_ACTION_WALK, 6, 9, 0, NULL },
     { PS_STORY_ACTION_LINK_SCENE, PS_GRID_DOWN, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 6, 6, 0, NULL },
-    { PS_STORY_ACTION_FACE, PS_GRID_RIGHT, 0, 0, NULL },
-    { PS_STORY_ACTION_SAY, 6, 0, 0, "Take this iron charm. The south road respects a little weight." },
+    { PS_STORY_ACTION_WALK, 6, 8, 0, NULL },
+    { PS_STORY_ACTION_WALK, 2, 8, 0, NULL },
+    { PS_STORY_ACTION_WALK, 2, 7, 0, NULL },
+    { STORY_ACTION_USE_ENTRANCE, REGION_GATE_SMITH, 0, 0, NULL },
+    { PS_STORY_ACTION_WALK, 6, 5, 0, NULL },
+    { PS_STORY_ACTION_FACE, PS_GRID_UP, 0, 0, NULL },
+    { STORY_ACTION_SMITHY_DIALOGUE, 6, 0, 0, NULL },
     { STORY_ACTION_GRANT_ITEM, ITEM_IRON_CHARM, 1, 0, NULL },
     { STORY_ACTION_PRESENT_INVENTORY, 0, 0, 0, NULL },
-    { PS_STORY_ACTION_WALK, 6, 9, 0, NULL },
     { PS_STORY_ACTION_WAIT, 28, 0, 0, NULL },
+    { PS_STORY_ACTION_WALK, 6, 10, 0, NULL },
+    { STORY_ACTION_USE_ENTRANCE, REGION_SMITHY_EXIT, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 6, 1, 0, NULL },
     { PS_STORY_ACTION_LINK_SCENE, PS_GRID_UP, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 6, 1, 0, NULL },
     { PS_STORY_ACTION_LINK_SCENE, PS_GRID_UP, 0, 0, NULL },
     { PS_STORY_ACTION_WALK, 6, 4, 0, NULL },
     { PS_STORY_ACTION_WAIT, 45, 0, 0, NULL },
+    { PS_STORY_ACTION_END, 0, 0, 0, NULL }
+};
+
+static const struct ps_story_action smithy_review_actions[] = {
+    { PS_STORY_ACTION_WAIT, 20, 0, 0, NULL },
+    { PS_STORY_ACTION_WALK, 6, 8, 0, NULL },
+    { PS_STORY_ACTION_WALK, 2, 8, 0, NULL },
+    { PS_STORY_ACTION_WALK, 2, 7, 0, NULL },
+    { STORY_ACTION_USE_ENTRANCE, REGION_GATE_SMITH, 0, 0, NULL },
+    { PS_STORY_ACTION_WALK, 6, 5, 0, NULL },
+    { PS_STORY_ACTION_FACE, PS_GRID_UP, 0, 0, NULL },
+    { STORY_ACTION_SMITHY_DIALOGUE, 6, 0, 0, NULL },
+    { STORY_ACTION_GRANT_ITEM, ITEM_IRON_CHARM, 1, 0, NULL },
+    { STORY_ACTION_PRESENT_INVENTORY, 0, 0, 0, NULL },
+    { PS_STORY_ACTION_WAIT, 35, 0, 0, NULL },
+    { PS_STORY_ACTION_WALK, 6, 10, 0, NULL },
+    { STORY_ACTION_USE_ENTRANCE, REGION_SMITHY_EXIT, 0, 0, NULL },
+    { PS_STORY_ACTION_WAIT, 90, 0, 0, NULL },
     { PS_STORY_ACTION_END, 0, 0, 0, NULL }
 };
 
@@ -757,6 +895,7 @@ static int simulator_itinerary = -1;
 static int simulator_preview_scene = -1;
 static int simulator_inventory_preview;
 static int simulator_dialogue_preview;
+static int simulator_smithy_review;
 static int frame_number;
 
 static void use_color(unsigned int color)
@@ -789,11 +928,41 @@ static void place_actor(int x, int y)
     story.actor.height = 6;
 }
 
+static const struct story_scene_presentation *scene_presentation(int scene)
+{
+    if (scene < 0 || scene >= (int)ARRAYLEN(scene_presentations))
+        return NULL;
+    return &scene_presentations[scene];
+}
+
+static int scene_is_indoor(int scene)
+{
+    const struct story_scene_presentation *presentation =
+        scene_presentation(scene);
+
+    return presentation != NULL &&
+        presentation->kind == SCENE_KIND_INDOOR;
+}
+
+static const struct story_npc_placement *npc_placement(int scene, int npc)
+{
+    int index;
+
+    for (index = 0; index < (int)ARRAYLEN(npc_placements); ++index)
+    {
+        if (npc_placements[index].scene == scene &&
+            npc_placements[index].npc == npc)
+            return &npc_placements[index];
+    }
+    return NULL;
+}
+
 static const struct palette *active_palette(const struct tm *now)
 {
     int hour = now->tm_hour;
 
-    if (story.scene == SCENE_HOUSE)
+    if (scene_presentation(story.scene) != NULL &&
+        scene_presentation(story.scene)->interior == INTERIOR_HOUSE)
         return &indoor_palette;
     if (simulator_palette == PALETTE_DAY)
         return &day_palette;
@@ -1008,6 +1177,11 @@ static void load_simulator_scenario(void)
         simulator_preview_scene = SCENE_GREEN;
         simulator_palette = PALETTE_DAY;
     }
+    else if (count >= 76 && count <= 78)
+    {
+        simulator_smithy_review = 1;
+        simulator_palette = PALETTE_DAY + count - 76;
+    }
 #endif
 }
 
@@ -1024,8 +1198,9 @@ static void reset_story(void *context)
         simulator_itinerary : ps_story_itinerary_select(
             117, state->loop_index, ARRAYLEN(itineraries));
 
-    state->scene = simulator_preview_scene >= 0 ?
-        simulator_preview_scene : SCENE_HOUSE;
+    state->scene = simulator_smithy_review ? SCENE_GATE :
+        (simulator_preview_scene >= 0 ?
+         simulator_preview_scene : SCENE_HOUSE);
     state->facing = PS_GRID_DOWN;
     state->walk_distance = 0;
     state->dialogue_frames = 0;
@@ -1050,6 +1225,13 @@ static void reset_story(void *context)
     state->active_action = -1;
     place_actor(scenes[state->scene].spawn.x,
                 scenes[state->scene].spawn.y);
+    if (simulator_smithy_review)
+    {
+        place_actor(6, 6);
+        ps_story_init(&director, smithy_review_actions,
+                      ARRAYLEN(smithy_review_actions), 0);
+        return;
+    }
     if (simulator_inventory_preview != 0)
     {
         seed_inventory_preview(state);
@@ -1244,24 +1426,31 @@ static int prepare_dialogue_page(struct story_state *state, int start)
     return 1;
 }
 
+static const char smithy_first_dialogue[] =
+    "The iron took a good edge. Carry this charm when the south road turns mean.";
+static const char smithy_repeat_dialogue[] =
+    "That charm has darkened at the rim. Good. It has been doing its work.";
+
 static int start_dialogue(const struct ps_story_action *action)
 {
-    static const int npc_columns[8] = { 2, 3, 7, 6, 8, 7, 8, 7 };
-    static const int npc_rows[8] = { 4, 5, 6, 6, 6, 6, 5, 7 };
     struct ps_text_span scratch[2];
+    const char *text = action->text;
     int actor_x = body_tile_x(&story.actor);
     int actor_y = body_tile_y(&story.actor);
 
-    if (action->text == NULL || action->text[0] == '\0')
+    if (action->kind == STORY_ACTION_SMITHY_DIALOGUE)
+        text = ps_inventory_quantity(&story.inventory, ITEM_IRON_CHARM) > 0 ?
+            smithy_repeat_dialogue : smithy_first_dialogue;
+    if (text == NULL || text[0] == '\0')
     {
         story.failure = STORY_FAILURE_DIALOGUE;
         return PS_STORY_ACTION_FAILED;
     }
     story.dialogue_speaker = action->a;
-    story.dialogue_text = action->text;
+    story.dialogue_text = text;
     story.dialogue_page = 1;
     story.dialogue_page_count = ps_text_page_count(
-        action->text, LCD_WIDTH - 24, scratch, ARRAYLEN(scratch),
+        text, LCD_WIDTH - 24, scratch, ARRAYLEN(scratch),
         measure_dialogue_segment, NULL);
     if (story.dialogue_page_count <= 0 ||
         !prepare_dialogue_page(&story, 0))
@@ -1272,9 +1461,13 @@ static int start_dialogue(const struct ps_story_action *action)
     if (action->a >= 1 && action->a <= 8)
     {
         int npc = action->a - 1;
-        story.npc_facing[npc] = ps_grid_direction_toward(
-            npc_columns[npc], npc_rows[npc], actor_x, actor_y,
-            story.npc_facing[npc]);
+        const struct story_npc_placement *placement =
+            npc_placement(story.scene, npc);
+
+        if (placement != NULL)
+            story.npc_facing[npc] = ps_grid_direction_toward(
+                placement->column, placement->row, actor_x, actor_y,
+                story.npc_facing[npc]);
     }
     return PS_STORY_ACTION_PENDING;
 }
@@ -1288,7 +1481,8 @@ static int handle_story_action(const struct ps_story_action *action,
     {
         state->active_action = director.action_index;
         state->route_active = 0;
-        if (action->kind == PS_STORY_ACTION_SAY)
+        if (action->kind == PS_STORY_ACTION_SAY ||
+            action->kind == STORY_ACTION_SMITHY_DIALOGUE)
             return start_dialogue(action);
         if (action->kind == STORY_ACTION_PRESENT_INVENTORY)
             return start_inventory_presentation(state);
@@ -1314,6 +1508,7 @@ static int handle_story_action(const struct ps_story_action *action,
             return PS_STORY_ACTION_DONE;
 
         case PS_STORY_ACTION_SAY:
+        case STORY_ACTION_SMITHY_DIALOGUE:
             if (state->dialogue_frames > 0)
             {
                 state->dialogue_frames--;
@@ -1404,6 +1599,33 @@ static int handle_story_action(const struct ps_story_action *action,
             return PS_STORY_ACTION_DONE;
         }
 
+        case STORY_ACTION_USE_ENTRANCE:
+        {
+            const struct ps_scene_entrance *entrance =
+                ps_scene_entrance_find(village_entrances,
+                                       ARRAYLEN(village_entrances),
+                                       state->scene, action->a);
+            struct ps_rect actor_bounds = {
+                state->actor.x / PS_ONE,
+                state->actor.y / PS_ONE,
+                state->actor.width,
+                state->actor.height
+            };
+
+            if (entrance == NULL ||
+                entrance->target_scene == PS_SCENE_NO_DESTINATION ||
+                ps_region_find(scenes[state->scene].regions,
+                               scenes[state->scene].region_count,
+                               &actor_bounds) != action->a)
+                return PS_STORY_ACTION_FAILED;
+            state->scene = entrance->target_scene;
+            state->route.count = 0;
+            state->route_active = 0;
+            state->facing = entrance->facing;
+            place_actor(entrance->spawn.x, entrance->spawn.y);
+            return PS_STORY_ACTION_DONE;
+        }
+
         default:
             return PS_STORY_ACTION_FAILED;
     }
@@ -1464,9 +1686,13 @@ static void draw_tile(int column, int row, int tile,
     int y = row * TILE_SIZE;
     int source_y;
 
-    if (story.scene == SCENE_HOUSE)
+    if (scene_is_indoor(story.scene))
     {
-        if (tile == TILE_WALL)
+        const struct story_scene_presentation *presentation =
+            scene_presentation(story.scene);
+
+        if (presentation->interior == INTERIOR_HOUSE &&
+            tile == TILE_WALL)
         {
             atlas = story_indoor_tiles;
             source_y = 0;
@@ -1475,11 +1701,19 @@ static void draw_tile(int column, int row, int tile,
                                 STORY_TILE_ATLAS_WIDTH,
                                 x, y, TILE_SIZE, TILE_SIZE);
         }
-        else
+        else if (presentation->interior == INTERIOR_HOUSE)
             rb->lcd_bitmap_part((const fb_data *)story_floor_tiles,
                                 ((column + row * 2) % 3) * 16, 0,
                                 STORY_FLOOR_ATLAS_WIDTH,
                                 x, y, TILE_SIZE, TILE_SIZE);
+        else
+        {
+            const unsigned short *surface = tile == TILE_WALL ?
+                story_smithy_wall : story_smithy_floor;
+
+            rb->lcd_bitmap((const fb_data *)surface,
+                           x, y, TILE_SIZE, TILE_SIZE);
+        }
     }
     else
     {
@@ -1603,6 +1837,71 @@ static void draw_house_architecture(void)
                                tile_x(5) + 10, 0, 28, 28);
     rb->lcd_bitmap_transparent((const fb_data *)story_fireplace,
                                tile_x(1), 6 * TILE_SIZE + 2, 32, 28);
+}
+
+static void draw_smithy_architecture(const struct palette *p)
+{
+    int ingot;
+
+    use_color(LCD_RGBPACK(55, 35, 29));
+    rb->lcd_fillrect(tile_x(1) - 2, TILE_SIZE - 3,
+                     11 * TILE_SIZE + 4, 4);
+    rb->lcd_fillrect(tile_x(1) - 2, TILE_SIZE - 3, 4,
+                     9 * TILE_SIZE + 6);
+    rb->lcd_fillrect(tile_x(12) - 2, TILE_SIZE - 3, 4,
+                     9 * TILE_SIZE + 6);
+    use_color(LCD_RGBPACK(104, 67, 44));
+    rb->lcd_fillrect(tile_x(1), TILE_SIZE - 2,
+                     11 * TILE_SIZE, 2);
+
+    use_color(LCD_RGBPACK(58, 43, 37));
+    rb->lcd_fillrect(tile_x(1) + 5, 3 * TILE_SIZE + 3, 38, 3);
+    rb->lcd_fillrect(tile_x(9) + 2, 3 * TILE_SIZE + 9, 42, 3);
+    use_color(LCD_RGBPACK(151, 153, 146));
+    for (ingot = 0; ingot < 4; ++ingot)
+        rb->lcd_fillrect(tile_x(1) + 8 + ingot * 8,
+                         3 * TILE_SIZE, 6, 2);
+    for (ingot = 0; ingot < 3; ++ingot)
+        rb->lcd_fillrect(tile_x(9) + 6 + ingot * 10,
+                         3 * TILE_SIZE + 6, 7, 2);
+
+    use_color(LCD_RGBPACK(72, 72, 70));
+    rb->lcd_fillrect(tile_x(3) + 6, 2 * TILE_SIZE + 4, 1, 12);
+    rb->lcd_fillrect(tile_x(9) + 9, 2 * TILE_SIZE + 1, 1, 14);
+    rb->lcd_fillrect(tile_x(3) + 4, 3 * TILE_SIZE, 5, 1);
+    rb->lcd_fillrect(tile_x(9) + 7, 3 * TILE_SIZE - 1, 5, 1);
+
+    use_color(p->accent);
+    rb->lcd_fillrect(tile_x(4) - 2, 2 * TILE_SIZE + 3, 3, 3);
+    rb->lcd_fillrect(tile_x(9) - 2, 2 * TILE_SIZE + 5, 3, 3);
+
+    rb->lcd_bitmap_transparent((const fb_data *)story_smithy_tools,
+                               tile_x(1) + 8, 2 * TILE_SIZE - 2, 32, 18);
+    rb->lcd_bitmap_transparent((const fb_data *)story_door,
+                               tile_x(5) + 8, 9 * TILE_SIZE, 32, 32);
+}
+
+static void draw_indoor_architecture(const struct palette *p)
+{
+    const struct story_scene_presentation *presentation =
+        scene_presentation(story.scene);
+
+    if (presentation == NULL)
+        return;
+    if (presentation->interior == INTERIOR_HOUSE)
+        draw_house_architecture();
+    else if (presentation->interior == INTERIOR_SMITHY)
+        draw_smithy_architecture(p);
+}
+
+static void draw_indoor_furniture(void)
+{
+    const struct story_scene_presentation *presentation =
+        scene_presentation(story.scene);
+
+    if (presentation != NULL &&
+        presentation->interior == INTERIOR_HOUSE)
+        draw_house_furniture();
 }
 
 static void draw_outdoor_architecture(const struct palette *p)
@@ -1826,6 +2125,45 @@ static void draw_tall(int x, int y, int id, const struct palette *p)
         rb->lcd_bitmap_transparent((const fb_data *)anvil,
                                    x, y, 16, 16);
     }
+    else if (id == INDOOR_PROP_FORGE)
+    {
+        int spark = (frame_number / 4) % 3;
+        const unsigned short *flame = ((frame_number / 6) & 1) ?
+            story_smithy_flame_a : story_smithy_flame_b;
+
+        rb->lcd_bitmap_transparent((const fb_data *)story_smithy_forge,
+                                   x + 4, y - 2, 40, 34);
+        rb->lcd_bitmap_transparent((const fb_data *)flame,
+                                   x + 18, y + 5, 12, 16);
+        use_color(p->accent);
+        rb->lcd_fillrect(x + 20 + spark * 3,
+                         y + 3 - spark * 2, 2, 2);
+    }
+    else if (id == INDOOR_PROP_BELLOWS)
+    {
+        rb->lcd_bitmap_transparent((const fb_data *)story_smithy_bellows,
+                                   x + 4, y + 2, 24, 16);
+    }
+    else if (id == INDOOR_PROP_TROUGH)
+    {
+        int phase = (frame_number / 8) & 1;
+
+        rb->lcd_bitmap_transparent((const fb_data *)story_smithy_trough,
+                                   x + 4, y + 1, 28, 16);
+        use_color(p->light);
+        rb->lcd_fillrect(x + 11 + phase * 5, y - 2 - phase * 2, 2, 3);
+        rb->lcd_fillrect(x + 20 - phase * 4, y - 5 + phase * 2, 2, 2);
+    }
+    else if (id == INDOOR_PROP_WORKBENCH)
+    {
+        rb->lcd_bitmap_transparent((const fb_data *)story_smithy_workbench,
+                                   x + 4, y, 32, 20);
+    }
+    else if (id == INDOOR_PROP_COAL)
+    {
+        rb->lcd_bitmap_transparent((const fb_data *)story_smithy_coal,
+                                   x + 6, y, 20, 18);
+    }
 }
 
 static void draw_gate_foreground(const struct palette *p)
@@ -1945,8 +2283,8 @@ static void draw_world(const struct palette *p)
                                row * TILE_SIZE + 31, tile);
         }
     }
-    if (story.scene == SCENE_HOUSE)
-        draw_house_architecture();
+    if (scene_is_indoor(story.scene))
+        draw_indoor_architecture(p);
     else
     {
         draw_outdoor_architecture(p);
@@ -1955,8 +2293,8 @@ static void draw_world(const struct palette *p)
     if (story.scene == SCENE_HOUSE)
         rb->lcd_bitmap_transparent((const fb_data *)story_rug,
                                    tile_x(5), 3 * TILE_SIZE, 48, 48);
-    if (story.scene == SCENE_HOUSE)
-        draw_house_furniture();
+    if (scene_is_indoor(story.scene))
+        draw_indoor_furniture();
     if (story.scene == SCENE_HOUSE)
     {
         queue_drawable(&drawables, DRAW_NPC,
@@ -1967,36 +2305,27 @@ static void draw_world(const struct palette *p)
                            tile_x(9), 4 * TILE_SIZE,
                            5 * TILE_SIZE - 1, ITEM_KEY);
     }
-    else if (story.scene == SCENE_COTTAGE)
+    else
     {
-        queue_drawable(&drawables, DRAW_NPC,
-                       tile_x(3) - 2, 5 * TILE_SIZE - 4,
-                       6 * TILE_SIZE - 1, 1);
+        int npc_index;
+
+        for (npc_index = 0;
+             npc_index < (int)ARRAYLEN(npc_placements); ++npc_index)
+        {
+            const struct story_npc_placement *placement =
+                &npc_placements[npc_index];
+            int hide_gate_rowan = placement->scene == SCENE_GATE &&
+                placement->npc == 5 &&
+                (story.itinerary_index == 2 || simulator_smithy_review);
+
+            if (placement->scene == story.scene && !hide_gate_rowan)
+                queue_drawable(&drawables, DRAW_NPC,
+                               tile_x(placement->column) - 2,
+                               placement->row * TILE_SIZE - 4,
+                               (placement->row + 1) * TILE_SIZE - 1,
+                               placement->npc);
+        }
     }
-    else if (story.scene == SCENE_GREEN)
-        queue_drawable(&drawables, DRAW_NPC,
-                       tile_x(7) - 2, 6 * TILE_SIZE - 4,
-                       7 * TILE_SIZE - 1, 2);
-    else if (story.scene == SCENE_MILL)
-        queue_drawable(&drawables, DRAW_NPC,
-                       tile_x(6) - 2, 6 * TILE_SIZE - 4,
-                       7 * TILE_SIZE - 1, 3);
-    else if (story.scene == SCENE_MARKET)
-        queue_drawable(&drawables, DRAW_NPC,
-                       tile_x(8) - 2, 6 * TILE_SIZE - 4,
-                       7 * TILE_SIZE - 1, 4);
-    else if (story.scene == SCENE_GATE)
-        queue_drawable(&drawables, DRAW_NPC,
-                       tile_x(7) - 2, 6 * TILE_SIZE - 4,
-                       7 * TILE_SIZE - 1, 5);
-    else if (story.scene == SCENE_FIELDS)
-        queue_drawable(&drawables, DRAW_NPC,
-                       tile_x(8) - 2, 5 * TILE_SIZE - 4,
-                       6 * TILE_SIZE - 1, 6);
-    else if (story.scene == SCENE_GARDEN)
-        queue_drawable(&drawables, DRAW_NPC,
-                       tile_x(7) - 2, 7 * TILE_SIZE - 4,
-                       8 * TILE_SIZE - 1, 7);
     if (story.scene != SCENE_HOUSE)
     {
         int prop_index;

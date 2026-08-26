@@ -1,7 +1,8 @@
 param(
     [ValidateSet('auto', 'day', 'evening', 'night',
                  'market', 'mill', 'gate', 'farm', 'garden',
-                 'inventory', 'inventory-empty', 'dialogue')]
+                 'inventory', 'inventory-empty', 'dialogue',
+                 'smithy', 'smithy-evening', 'smithy-night')]
     [string]$Scenario = 'day'
 )
 

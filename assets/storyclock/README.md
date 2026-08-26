@@ -138,6 +138,56 @@ Three additional CC0 sources are retained with local licensing notes:
 
 The complete CC0 1.0 legal text is retained once at `LICENSES/CC0-1.0.txt`.
 
+## Smithy interior asset review
+
+The South Gate smithy is the first test of the village interior identity rule.
+Its floor and walls use dark forge stone, its dominant landmark is an animated
+masonry forge, its clutter family is metalworking equipment, and its ambient
+motion comes from stable forge-fire and quench-trough cells. This separates it
+from the opening house's oak floor, plaster and timber walls, bedroom furniture,
+and quiet hearth.
+
+The review compared three identical 220x176 room layouts under
+`artifacts/asset-review/smithy/`:
+
+| Treatment | Sources | Decision | Native-scale result |
+| --- | --- | --- | --- |
+| Existing only | Story Clock room architecture, Cottage Core furniture, Ansimuz props, AntumDeluge anvil | Rejected as a complete treatment | Coherent, but it read as the opening bedroom with a fireplace and did not establish a working forge. |
+| Open library mix | Ninja Adventure floors and Kenney Roguelike Indoors furniture | Rejected | The bright floor pattern competed with the 20-pixel actors, Kenney's flatter furniture did not match Story Clock's shaded character art, and neither reviewed source supplied a convincing forge animation. |
+| Selected hybrid | Existing door and CC0 anvil plus focused generated smithy equipment | Accepted | The dark stone field, forge silhouette, tool family, and quiet central aisle remain readable at native resolution. |
+
+The open candidates were reviewed outside the shipped asset tree:
+
+- Pixel-boy's Ninja Adventure Asset Pack, CC0 1.0,
+  `https://pixel-boy.itch.io/ninja-adventure-asset-pack`, page updated
+  August 7, 2026. The current public Godot repository supplied the inspected
+  floor and wall sheets.
+- Kenney Roguelike Indoors 1.0, CC0 1.0,
+  `https://kenney.nl/assets/roguelike-indoors`. The inspected 480-cell sheet
+  and its original `License.txt` remain only in the ignored review directory
+  because no cells were accepted into the plugin.
+
+OpenAI's built-in image-generation mode produced
+`smithy-signature-generated-v1.png` after the reusable candidates failed the
+forge, bellows, trough, tool-rack, and coal-bin roles. The complete accepted
+prompt and the rejected transparency-edit note are retained in
+`smithy-signature-generated-v1.prompt.txt`. The generator baked a neutral
+checkerboard into RGB pixels, so the manifest removes that background with a
+recorded tolerant color key. It then crops the exact source cells and reduces
+them with nearest-neighbor sampling. The compact RGB565 results are shared by
+the day, evening, and night presentations; the room palette and animated light
+accents carry the time-of-day shift without tripling plugin memory.
+
+The manifest reuses the existing `story_door` and CC0 `story_smithy_anvil`.
+It emits one 40x34 forge base with two 12x16 flame overlays, one 28x16 trough
+with code-drawn steam, a 24x16 bellows, 32x18 tool rack, 32x20 workbench,
+20x18 coal bin, and one 16x16 tile each for the stone floor and wall. This
+fixed-footprint composition replaced the first full-frame pass after the iPod
+linker exposed an 83,168-byte plugin-memory overflow. The refined device build
+now links successfully as a 520,292-byte `.rock` plugin. Recompiling the unchanged
+manifest twice produced the same SHA-256 header hash:
+`13DDFA3ADB230A75C118291D9CC99F2DD7C2279C95768A1AB9B1769922748117`.
+
 ## Satchel and keepsake art
 
 The inventory pass audited the existing Story Clock manifest and retained

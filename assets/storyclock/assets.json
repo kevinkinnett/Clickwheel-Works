@@ -85,7 +85,8 @@
     "chicken_pen": { "path": "third-party/proyd-chicken-pen/chicken.png" },
     "anvil": { "path": "third-party/antumdeluge-anvil/anvil-16x16-black.png" },
     "inventory_satchel": { "path": "inventory-satchel-generated-v1.png" },
-    "inventory_market_token": { "path": "inventory-market-token-generated-v1.png" }
+    "inventory_market_token": { "path": "inventory-market-token-generated-v1.png" },
+    "smithy_signature": { "path": "smithy-signature-generated-v1.png" }
   },
   "assets": [
     {
@@ -830,6 +831,94 @@
         { "suffix": "_day", "tint": { "multiply": [1, 1, 1], "add": [0, 0, 0] } },
         { "suffix": "_evening", "tint": { "multiply": [0.82, 0.65, 0.76], "add": [24, 10, 30] } },
         { "suffix": "_night", "tint": { "multiply": [0.34, 0.44, 0.68], "add": [5, 8, 22] } }
+      ]
+    },
+    {
+      "name": "story_smithy_floor",
+      "operations": [
+        { "op": "source", "source": "smithy_signature" },
+        { "op": "crop", "rect": [248, 424, 104, 72] },
+        { "op": "resize", "size": [16, 16] }
+      ]
+    },
+    {
+      "name": "story_smithy_wall",
+      "operations": [
+        { "op": "source", "source": "smithy_signature" },
+        { "op": "crop", "rect": [260, 55, 100, 100] },
+        { "op": "resize", "size": [16, 16] }
+      ]
+    },
+    {
+      "name": "story_smithy_forge",
+      "operations": [
+        { "op": "source", "source": "smithy_signature" },
+        { "op": "crop", "rect": [610, 75, 230, 205] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 20 },
+        { "op": "resize", "size": [40, 34] }
+      ]
+    },
+    {
+      "name": "story_smithy_flame_a",
+      "operations": [
+        { "op": "source", "source": "smithy_signature" },
+        { "op": "crop", "rect": [980, 115, 86, 122] },
+        { "op": "color_key", "color": [20, 15, 14], "tolerance": 35 },
+        { "op": "resize", "size": [12, 16] }
+      ]
+    },
+    {
+      "name": "story_smithy_flame_b",
+      "operations": [
+        { "op": "source", "source": "smithy_signature" },
+        { "op": "crop", "rect": [1270, 110, 90, 130] },
+        { "op": "color_key", "color": [20, 15, 14], "tolerance": 35 },
+        { "op": "resize", "size": [12, 16] }
+      ]
+    },
+    {
+      "name": "story_smithy_bellows",
+      "operations": [
+        { "op": "source", "source": "smithy_signature" },
+        { "op": "crop", "rect": [595, 335, 250, 180] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 20 },
+        { "op": "resize", "size": [24, 16] }
+      ]
+    },
+    {
+      "name": "story_smithy_trough",
+      "operations": [
+        { "op": "source", "source": "smithy_signature" },
+        { "op": "crop", "rect": [585, 575, 250, 165] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 20 },
+        { "op": "resize", "size": [28, 16] }
+      ]
+    },
+    {
+      "name": "story_smithy_tools",
+      "operations": [
+        { "op": "source", "source": "smithy_signature" },
+        { "op": "crop", "rect": [130, 750, 360, 200] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 20 },
+        { "op": "resize", "size": [32, 18] }
+      ]
+    },
+    {
+      "name": "story_smithy_workbench",
+      "operations": [
+        { "op": "source", "source": "smithy_signature" },
+        { "op": "crop", "rect": [590, 750, 340, 230] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 20 },
+        { "op": "resize", "size": [32, 20] }
+      ]
+    },
+    {
+      "name": "story_smithy_coal",
+      "operations": [
+        { "op": "source", "source": "smithy_signature" },
+        { "op": "crop", "rect": [1050, 745, 270, 235] },
+        { "op": "color_key", "color": [248, 248, 248], "tolerance": 20 },
+        { "op": "resize", "size": [20, 18] }
       ]
     },
     {

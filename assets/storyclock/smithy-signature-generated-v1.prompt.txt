@@ -1,0 +1,20 @@
+Generation mode: OpenAI built-in image generation
+Generated: 2026-08-26
+Usage basis: project-owned generated artwork
+
+Accepted source prompt:
+
+Use case: stylized-concept
+Asset type: source sprite sheet for a 220x176 top-down JRPG screensaver
+Primary request: create a clean source sheet of medieval village blacksmith interior objects: one large masonry forge with chimney and fixed base; three separate small flame-overlay frames with the same footprint; one wooden bellows plus two separate moving-handle overlay frames; one water-filled quench trough plus three separate small steam-overlay frames; one wall-mounted tool rack holding hammers and tongs; one compact timber workbench with metal scraps; one coal bin.
+Input images: the project's existing indoor architecture, smithy exterior, and Luma walk sheet were style and scale references.
+Scene/backdrop: isolated objects arranged in a spacious label-free grid on a transparent-looking light checkerboard.
+Style/medium: crisp hand-drawn top-down pixel art using the project's warm brown timber, charcoal stone, dark plum outlines, and restrained orange firelight. Objects must read after nearest-neighbor reduction to roughly 16-48 pixels.
+Composition/framing: each object isolated with generous padding; no overlaps; forge shown from the same elevated top-down JRPG angle as existing room furniture; animation cells separated and aligned consistently.
+Lighting/mood: fixed upper-left room light, warm forge glow only inside flame cells.
+Constraints: no characters; no room scene; no text; no labels; no watermark; no antialiasing haze; no perspective mismatch; static bases must not flip, translate, or change silhouette between animation cells.
+Avoid: photorealism, isometric perspective, side-view platformer objects, glossy 3D rendering, excessive micro-detail.
+
+Transparency note:
+
+The generator returned an RGB checkerboard rather than alpha. A follow-up background-extraction edit replaced it with a dark gradient and was rejected. The accepted original source remains unchanged. The manifest removes its nearly neutral pixels with a recorded tolerant color key before cropping and nearest-neighbor reduction.

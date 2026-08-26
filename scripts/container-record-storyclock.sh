@@ -37,6 +37,24 @@ case "$scenario" in
         output_duration=12
         trim_start=0.5
         ;;
+    smithy)
+        scenario_number=76
+        capture_duration=24
+        output_duration=22
+        trim_start=0.8
+        ;;
+    smithy-evening)
+        scenario_number=77
+        capture_duration=24
+        output_duration=22
+        trim_start=0.8
+        ;;
+    smithy-night)
+        scenario_number=78
+        capture_duration=24
+        output_duration=22
+        trim_start=0.8
+        ;;
     *) echo "Unknown Story Clock scenario: $scenario" >&2; exit 2 ;;
 esac
 
